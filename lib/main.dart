@@ -1,32 +1,39 @@
-import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
 
-import 'app.dart';
-import 'features/auth/data/auth_repository.dart';
-import 'features/auth/presentation/auth_controller.dart';
-import 'features/posts/data/post_repository.dart';
-import 'firebase_options.dart';
-import 'core/services/cloudinary_service.dart';
-import 'features/chat/data/chat_repository.dart';
-import 'features/groups/data/group_repository.dart';
+void main() {
+  runApp(const MaterialApp(home: MyPage()));
+}
 
-Future<void> main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+class MyPage extends StatefulWidget {
+  const MyPage({super.key});
 
-  final repo = AuthRepository();
-  runApp(
-    MultiProvider(
-      providers: [
-        Provider<AuthRepository>.value(value: repo),
-        Provider<PostRepository>(create: (_) => PostRepository()),
-        ChangeNotifierProvider(create: (_) => AuthController(repo)),
-        Provider<CloudinaryService>(create: (_) => CloudinaryService()),
-        Provider<ChatRepository>(create: (_) => ChatRepository()),
-        Provider<GroupRepository>(create: (_) => GroupRepository()),
-      ],
-      child: const App(),
-    ),
-  );
+  @override
+  State<MyPage> createState() => _MyPageState();
+}
+
+class _MyPageState extends State<MyPage> {
+  String message = 'ยังไม่ได้กดปุ่ม';
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('GitHub Lab')),
+      body: Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(message),
+            ElevatedButton(
+              onPressed: () {
+                setState(() {
+                  message = 'กดปุ่มแล้ว!';
+                });
+              },
+              child: const Text('HelloWord'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
