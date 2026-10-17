@@ -54,7 +54,11 @@ class _ReactionBarState extends State<ReactionBar> {
   Future<void> _loadMine() async {
     final repo = context.read<PostRepository>();
     try {
-      final t = await repo.getMyReaction(widget.post.id, widget.viewer.uid);
+      final t = await repo.getMyReaction(
+        widget.post.id,
+        widget.viewer.uid,
+        groupId: widget.post.groupId,
+      );
       if (mounted) setState(() => _mine = t);
     } on PostException {
       // โหลดรีแอคชันของเราไม่ได้ ปล่อยเป็นว่างไว้
@@ -74,7 +78,12 @@ class _ReactionBarState extends State<ReactionBar> {
       _mine = next;
     });
     try {
-      await repo.setReaction(widget.post.id, widget.viewer.uid, next);
+      await repo.setReaction(
+        widget.post.id,
+        widget.viewer.uid,
+        next,
+        groupId: widget.post.groupId,
+      );
     } on PostException catch (e) {
       if (mounted) {
         setState(() {
@@ -97,7 +106,10 @@ class _ReactionBarState extends State<ReactionBar> {
       ),
     );
     try {
-      final n = await repo.getCommentCount(widget.post.id);
+      final n = await repo.getCommentCount(
+        widget.post.id,
+        groupId: widget.post.groupId,
+      );
       if (mounted) setState(() => _commentCount = n);
     } on PostException {
       // อัปเดตจำนวนคอมเมนต์ไม่ได้ คงตัวเลขเดิมไว้

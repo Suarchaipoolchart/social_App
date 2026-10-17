@@ -5,6 +5,7 @@ import '../../auth/data/app_user.dart';
 import '../data/group_models.dart';
 import '../data/group_repository.dart';
 import 'create_group_page.dart';
+import 'group_feed_page.dart';
 
 class GroupDetailPage extends StatefulWidget {
   const GroupDetailPage({super.key, required this.groupId, required this.me});
@@ -227,12 +228,18 @@ class _GroupDetailPageState extends State<GroupDetailPage> {
               ),
               const SizedBox(height: 8),
               Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Text(
-                    'โพสต์ในกลุ่ม: ฟีดภายใน${g.typeLabel}จะเพิ่มในรอบถัดไป',
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      color: theme.colorScheme.onSurfaceVariant,
+                child: ListTile(
+                  leading: const Icon(Icons.dynamic_feed),
+                  title: Text('ฟีดของ${g.typeLabel}'),
+                  subtitle: Text(
+                    g.isPage ? 'โพสต์จากผู้ดูแลเพจ' : 'โพสต์จากสมาชิกในกลุ่ม',
+                  ),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) =>
+                          GroupFeedPage(groupId: g.id, me: widget.me),
                     ),
                   ),
                 ),

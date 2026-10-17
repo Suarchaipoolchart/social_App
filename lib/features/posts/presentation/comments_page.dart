@@ -34,7 +34,12 @@ class _CommentsPageState extends State<CommentsPage> {
 
     setState(() => _sending = true);
     try {
-      await repo.addComment(widget.post.id, widget.viewer, text);
+      await repo.addComment(
+        widget.post.id,
+        widget.viewer,
+        text,
+        groupId: widget.post.groupId,
+      );
       _text.clear();
     } on PostException catch (e) {
       messenger.showSnackBar(SnackBar(content: Text(e.message)));
@@ -47,7 +52,11 @@ class _CommentsPageState extends State<CommentsPage> {
     final repo = context.read<PostRepository>();
     final messenger = ScaffoldMessenger.of(context);
     try {
-      await repo.deleteComment(widget.post.id, c.id);
+      await repo.deleteComment(
+        widget.post.id,
+        c.id,
+        groupId: widget.post.groupId,
+      );
     } on PostException catch (e) {
       messenger.showSnackBar(SnackBar(content: Text(e.message)));
     }
@@ -64,7 +73,10 @@ class _CommentsPageState extends State<CommentsPage> {
         children: [
           Expanded(
             child: StreamBuilder<List<Comment>>(
-              stream: repo.watchComments(widget.post.id),
+              stream: repo.watchComments(
+                widget.post.id,
+                groupId: widget.post.groupId,
+              ),
               builder: (context, snap) {
                 if (snap.hasError) {
                   return Center(

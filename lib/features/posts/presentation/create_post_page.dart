@@ -9,10 +9,16 @@ import '../data/post_model.dart';
 import '../data/post_repository.dart';
 
 class CreatePostPage extends StatefulWidget {
-  const CreatePostPage({super.key, required this.user, this.editing});
+  const CreatePostPage({
+    super.key,
+    required this.user,
+    this.editing,
+    this.groupId,
+  });
 
   final AppUser user;
   final Post? editing; // ถ้ามีค่า = โหมดแก้ไข
+  final String? groupId; // ถ้ามีค่า = โพสต์ในกลุ่ม/เพจ
 
   @override
   State<CreatePostPage> createState() => _CreatePostPageState();
@@ -98,11 +104,12 @@ class _CreatePostPageState extends State<CreatePostPage> {
     final cloud = context.read<CloudinaryService>();
     final navigator = Navigator.of(context);
     final messenger = ScaffoldMessenger.of(context);
+    final groupId = widget.editing?.groupId ?? widget.groupId;
 
     setState(() => _saving = true);
     try {
       if (_isEdit) {
-        await repo.updatePost(widget.editing!.id, text);
+        await repo.updatePost(widget.editing!.id, text, groupId: groupId);
       } else {
         String? url;
         String? type;
@@ -115,6 +122,7 @@ class _CreatePostPageState extends State<CreatePostPage> {
           text,
           mediaUrl: url,
           mediaType: type,
+          groupId: groupId,
         );
       }
       navigator.pop();
