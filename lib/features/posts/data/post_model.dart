@@ -31,6 +31,13 @@ class Post {
 
   bool get edited => updatedAt != null;
 
+  /// พาธเอกสาร: posts/{id} (ฟีดหลัก) หรือ groups/{groupId}/posts/{id} (ในกลุ่ม)
+  static String? _groupIdFromPath(String path) {
+    final segments = path.split('/');
+    if (segments.length == 4 && segments[0] == 'groups') return segments[1];
+    return null;
+  }
+
   factory Post.fromDoc(DocumentSnapshot<Map<String, dynamic>> doc) {
     final data = doc.data() ?? {};
     final rawCounts = (data['reactionCounts'] as Map?) ?? {};
@@ -49,8 +56,7 @@ class Post {
           e.key.toString(): (e.value as num).toInt(),
       },
       commentCount: (data['commentCount'] as num?)?.toInt() ?? 0,
-      // posts/{id} มี parent.parent เป็น null, groups/{g}/posts/{id} จะได้ id ของกลุ่ม
-      groupId: doc.reference.parent.parent?.id,
+      groupId: _groupIdFromPath(doc.reference.path),
     );
   }
 }
