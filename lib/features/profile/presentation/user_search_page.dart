@@ -49,8 +49,11 @@ class _UserSearchPageState extends State<UserSearchPage> {
     });
     try {
       final list = await repo.searchUsers(text);
-      if (!mounted || text != _controller.text)
+
+      if (!mounted || text != _controller.text) {
         return; // ผลเก่าที่ถูกแทนที่แล้ว
+      }
+
       setState(
         () => _results = list.where((u) => u.uid != widget.me.uid).toList(),
       );
