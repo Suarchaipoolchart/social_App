@@ -9,6 +9,7 @@ import '../../posts/presentation/create_post_page.dart';
 import '../../posts/presentation/post_card.dart';
 import '../data/group_models.dart';
 import '../data/group_repository.dart';
+import '../../profile/presentation/user_profile_page.dart';
 
 class GroupFeedPage extends StatefulWidget {
   const GroupFeedPage({super.key, required this.groupId, required this.me});
@@ -213,6 +214,14 @@ class _GroupFeedPageState extends State<GroupFeedPage> {
                   isOwner: post.authorId == widget.me.uid,
                   onEdit: () => _openEditor(editing: post),
                   onDelete: () => _confirmDelete(post),
+
+                  onAuthorTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) =>
+                          UserProfilePage(uid: post.authorId, me: widget.me),
+                    ),
+                  ),
                 );
               },
             ),

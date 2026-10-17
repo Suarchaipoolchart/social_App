@@ -71,6 +71,25 @@ class PostRepository {
     }
   }
 
+  /// โพสต์ของผู้ใช้คนหนึ่งในฟีดหลัก (ต้องสร้าง composite index ก่อน ดู Step 9)
+  Future<List<Post>> fetchByAuthor(String authorId, {int limit = 20}) async {
+    try {
+      final snap = await _posts()
+          .where('authorId', isEqualTo: authorId)
+          .orderBy('createdAt', descending: true)
+          .limit(limit)
+          .get();
+      return snap.docs.map(Post.fromDoc).toList();
+    } on FirebaseException catch (e) {
+      if (e.code == 'failed-precondition') {
+        throw PostException(
+          'ต้องสร้าง index ใน Firestore ก่อน (ดูขั้นตอน Index): ${e.message}',
+        );
+      }
+      throw PostException(_message(e.code));
+    }
+  }
+
   // ---------- โพสต์ ----------
 
   Future<void> createPost(

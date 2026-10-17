@@ -13,6 +13,7 @@ class PostCard extends StatelessWidget {
     this.viewer,
     this.onEdit,
     this.onDelete,
+    this.onAuthorTap,
   });
 
   final Post post;
@@ -20,6 +21,7 @@ class PostCard extends StatelessWidget {
   final AppUser? viewer;
   final VoidCallback? onEdit;
   final VoidCallback? onDelete;
+  final VoidCallback? onAuthorTap; // แตะรูป/ชื่อผู้เขียนเพื่อเปิดโปรไฟล์
 
   String _timeAgo(DateTime t) {
     final diff = DateTime.now().difference(t);
@@ -68,36 +70,46 @@ class PostCard extends StatelessWidget {
           children: [
             Row(
               children: [
-                CircleAvatar(
-                  backgroundImage: post.authorPhotoUrl != null
-                      ? NetworkImage(post.authorPhotoUrl!)
-                      : null,
-                  child: post.authorPhotoUrl == null
-                      ? Text(
-                          post.authorName.isNotEmpty
-                              ? post.authorName[0].toUpperCase()
-                              : '?',
-                        )
-                      : null,
-                ),
-                const SizedBox(width: 12),
                 Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        post.authorName,
-                        style: theme.textTheme.titleSmall?.copyWith(
-                          fontWeight: FontWeight.bold,
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(8),
+                    onTap: onAuthorTap,
+                    child: Row(
+                      children: [
+                        CircleAvatar(
+                          backgroundImage: post.authorPhotoUrl != null
+                              ? NetworkImage(post.authorPhotoUrl!)
+                              : null,
+                          child: post.authorPhotoUrl == null
+                              ? Text(
+                                  post.authorName.isNotEmpty
+                                      ? post.authorName[0].toUpperCase()
+                                      : '?',
+                                )
+                              : null,
                         ),
-                      ),
-                      Text(
-                        subtitle,
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.colorScheme.onSurfaceVariant,
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                post.authorName,
+                                style: theme.textTheme.titleSmall?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              Text(
+                                subtitle,
+                                style: theme.textTheme.bodySmall?.copyWith(
+                                  color: theme.colorScheme.onSurfaceVariant,
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
                 if (isOwner)

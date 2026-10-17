@@ -11,6 +11,8 @@ import '../../posts/data/post_model.dart';
 import '../../posts/data/post_repository.dart';
 import '../../posts/presentation/create_post_page.dart';
 import '../../posts/presentation/post_card.dart';
+import '../../profile/presentation/user_profile_page.dart';
+import '../../profile/presentation/user_search_page.dart';
 
 class FeedPage extends StatefulWidget {
   const FeedPage({super.key});
@@ -235,6 +237,16 @@ class _FeedPageState extends State<FeedPage> {
                       ? null
                       : () => _openEditor(user, editing: post),
                   onDelete: () => _confirmDelete(post),
+
+                  onAuthorTap: user == null
+                      ? null
+                      : () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) =>
+                                UserProfilePage(uid: post.authorId, me: user),
+                          ),
+                        ),
                 );
               },
             ),
@@ -264,6 +276,20 @@ class _FeedPageState extends State<FeedPage> {
                 tooltip: 'รีเฟรช',
                 icon: const Icon(Icons.refresh),
                 onPressed: _loading ? null : _loadFirst,
+              ),
+
+              // ปุ่มค้นหาผู้ใช้
+              IconButton(
+                tooltip: 'ค้นหาผู้ใช้',
+                icon: const Icon(Icons.search),
+                onPressed: user == null
+                    ? null
+                    : () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => UserSearchPage(me: user),
+                        ),
+                      ),
               ),
 
               // ปุ่มกลุ่มและเพจ

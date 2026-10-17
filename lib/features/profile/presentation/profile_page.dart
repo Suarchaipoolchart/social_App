@@ -5,6 +5,8 @@ import '../../auth/data/app_user.dart';
 import '../../auth/data/auth_repository.dart';
 import '../../auth/presentation/auth_controller.dart';
 import 'edit_profile_page.dart';
+import '../../follow/presentation/follow_requests_page.dart';
+import '../../follow/presentation/follow_stats.dart';
 
 class ProfilePage extends StatelessWidget {
   const ProfilePage({super.key});
@@ -74,6 +76,19 @@ class ProfilePage extends StatelessWidget {
                         const SizedBox(height: 12),
                         Text(user.bio, textAlign: TextAlign.center),
                       ],
+                      const SizedBox(height: 16),
+                      FollowStats(uid: user.uid),
+                      const SizedBox(height: 8),
+                      TextButton.icon(
+                        icon: const Icon(Icons.person_add_alt),
+                        label: const Text('คำขอติดตาม'),
+                        onPressed: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => FollowRequestsPage(me: user),
+                          ),
+                        ),
+                      ),
                       const SizedBox(height: 24),
                       OutlinedButton.icon(
                         icon: const Icon(Icons.edit),

@@ -10,6 +10,8 @@ import 'firebase_options.dart';
 import 'core/services/cloudinary_service.dart';
 import 'features/chat/data/chat_repository.dart';
 import 'features/groups/data/group_repository.dart';
+import 'features/follow/data/follow_repository.dart';
+import 'features/profile/data/user_repository.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -25,6 +27,8 @@ Future<void> main() async {
         Provider<CloudinaryService>(create: (_) => CloudinaryService()),
         Provider<ChatRepository>(create: (_) => ChatRepository()),
         Provider<GroupRepository>(create: (_) => GroupRepository()),
+        Provider<FollowRepository>(create: (_) => FollowRepository()),
+        Provider<UserRepository>(create: (_) => UserRepository()),
       ],
       child: const App(),
     ),
