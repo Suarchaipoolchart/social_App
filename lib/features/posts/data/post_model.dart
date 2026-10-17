@@ -12,6 +12,7 @@ class Post {
   final DateTime? updatedAt;
   final Map<String, int> reactionCounts;
   final int commentCount;
+  final String? groupId; // null = โพสต์ในฟีดหลัก
 
   const Post({
     required this.id,
@@ -25,6 +26,7 @@ class Post {
     this.updatedAt,
     this.reactionCounts = const {},
     this.commentCount = 0,
+    this.groupId,
   });
 
   bool get edited => updatedAt != null;
@@ -47,6 +49,8 @@ class Post {
           e.key.toString(): (e.value as num).toInt(),
       },
       commentCount: (data['commentCount'] as num?)?.toInt() ?? 0,
+      // posts/{id} มี parent.parent เป็น null, groups/{g}/posts/{id} จะได้ id ของกลุ่ม
+      groupId: doc.reference.parent.parent?.id,
     );
   }
 }

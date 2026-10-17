@@ -30,13 +30,19 @@ class PostRepository {
 
   final FirebaseFirestore _db;
 
-  CollectionReference<Map<String, dynamic>> get _col =>
-      _db.collection(FirestorePaths.posts);
+  /// groupId == null = ฟีดหลัก (posts) / มีค่า = โพสต์ในกลุ่ม (groups/{id}/posts)
+  CollectionReference<Map<String, dynamic>> _posts([String? groupId]) {
+    if (groupId == null) return _db.collection(FirestorePaths.posts);
+    return _db
+        .collection(FirestorePaths.groups)
+        .doc(groupId)
+        .collection(FirestorePaths.posts);
+  }
 
   // ---------- ฟีด ----------
 
   Stream<List<Post>> watchFeed({int limit = 50}) {
-    return _col
+    return _posts()
         .orderBy('createdAt', descending: true)
         .limit(limit)
         .snapshots()
@@ -47,9 +53,12 @@ class PostRepository {
   Future<PostPage> fetchPage({
     DocumentSnapshot<Map<String, dynamic>>? after,
     int limit = 10,
+    String? groupId,
   }) async {
     try {
-      var query = _col.orderBy('createdAt', descending: true).limit(limit);
+      var query = _posts(
+        groupId,
+      ).orderBy('createdAt', descending: true).limit(limit);
       if (after != null) query = query.startAfterDocument(after);
       final snap = await query.get();
       return PostPage(
@@ -69,9 +78,10 @@ class PostRepository {
     String text, {
     String? mediaUrl,
     String? mediaType,
+    String? groupId,
   }) async {
     try {
-      await _col.add({
+      await _posts(groupId).add({
         'authorId': author.uid,
         'authorName': author.displayName,
         'authorPhotoUrl': author.photoUrl,
@@ -88,9 +98,9 @@ class PostRepository {
     }
   }
 
-  Future<void> updatePost(String postId, String text) async {
+  Future<void> updatePost(String postId, String text, {String? groupId}) async {
     try {
-      await _col.doc(postId).update({
+      await _posts(groupId).doc(postId).update({
         'text': text,
         'updatedAt': FieldValue.serverTimestamp(),
       });
@@ -99,9 +109,9 @@ class PostRepository {
     }
   }
 
-  Future<void> deletePost(String postId) async {
+  Future<void> deletePost(String postId, {String? groupId}) async {
     try {
-      await _col.doc(postId).delete();
+      await _posts(groupId).doc(postId).delete();
     } on FirebaseException catch (e) {
       throw PostException(_message(e.code));
     }
@@ -110,9 +120,15 @@ class PostRepository {
   // ---------- รีแอคชัน ----------
 
   /// รีแอคชันของผู้ใช้คนนี้ในโพสต์ (null = ยังไม่ได้รีแอคชัน)
-  Future<String?> getMyReaction(String postId, String uid) async {
+  Future<String?> getMyReaction(
+    String postId,
+    String uid, {
+    String? groupId,
+  }) async {
     try {
-      final snap = await _col.doc(postId).collection(_reactions).doc(uid).get();
+      final snap = await _posts(
+        groupId,
+      ).doc(postId).collection(_reactions).doc(uid).get();
       return snap.data()?['type'] as String?;
     } on FirebaseException catch (e) {
       throw PostException(_message(e.code));
@@ -120,8 +136,13 @@ class PostRepository {
   }
 
   /// ตั้งรีแอคชัน (type = null คือยกเลิก) พร้อมปรับตัวนับในโพสต์
-  Future<void> setReaction(String postId, String uid, String? type) async {
-    final postRef = _col.doc(postId);
+  Future<void> setReaction(
+    String postId,
+    String uid,
+    String? type, {
+    String? groupId,
+  }) async {
+    final postRef = _posts(groupId).doc(postId);
     final reactRef = postRef.collection(_reactions).doc(uid);
     try {
       await _db.runTransaction((tx) async {
@@ -154,17 +175,21 @@ class PostRepository {
 
   // ---------- คอมเมนต์ ----------
 
-  Future<int> getCommentCount(String postId) async {
+  Future<int> getCommentCount(String postId, {String? groupId}) async {
     try {
-      final snap = await _col.doc(postId).get();
+      final snap = await _posts(groupId).doc(postId).get();
       return (snap.data()?['commentCount'] as num?)?.toInt() ?? 0;
     } on FirebaseException catch (e) {
       throw PostException(_message(e.code));
     }
   }
 
-  Stream<List<Comment>> watchComments(String postId, {int limit = 200}) {
-    return _col
+  Stream<List<Comment>> watchComments(
+    String postId, {
+    int limit = 200,
+    String? groupId,
+  }) {
+    return _posts(groupId)
         .doc(postId)
         .collection(FirestorePaths.comments)
         .orderBy('createdAt')
@@ -173,8 +198,13 @@ class PostRepository {
         .map((snap) => snap.docs.map(Comment.fromDoc).toList());
   }
 
-  Future<void> addComment(String postId, AppUser author, String text) async {
-    final postRef = _col.doc(postId);
+  Future<void> addComment(
+    String postId,
+    AppUser author,
+    String text, {
+    String? groupId,
+  }) async {
+    final postRef = _posts(groupId).doc(postId);
     final commentRef = postRef.collection(FirestorePaths.comments).doc();
     try {
       final batch = _db.batch();
@@ -192,8 +222,12 @@ class PostRepository {
     }
   }
 
-  Future<void> deleteComment(String postId, String commentId) async {
-    final postRef = _col.doc(postId);
+  Future<void> deleteComment(
+    String postId,
+    String commentId, {
+    String? groupId,
+  }) async {
+    final postRef = _posts(groupId).doc(postId);
     try {
       final batch = _db.batch();
       batch.delete(postRef.collection(FirestorePaths.comments).doc(commentId));
@@ -207,7 +241,7 @@ class PostRepository {
   String _message(String code) {
     switch (code) {
       case 'permission-denied':
-        return 'ไม่มีสิทธิ์ทำรายการนี้ (ตรวจสอบ Security Rules)';
+        return 'ไม่มีสิทธิ์ทำรายการนี้ (กลุ่ม: ต้องเป็นสมาชิก / เพจ: เฉพาะผู้ดูแล)';
       case 'unavailable':
         return 'ไม่มีการเชื่อมต่ออินเทอร์เน็ต';
       case 'not-found':
