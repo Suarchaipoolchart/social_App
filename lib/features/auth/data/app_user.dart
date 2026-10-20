@@ -7,6 +7,7 @@ class AppUser {
   final String? photoUrl;
   final String bio;
   final bool isPrivate;
+  final bool isAdmin; // ตั้งจาก Firebase Console เท่านั้น
   final DateTime? createdAt;
 
   const AppUser({
@@ -16,6 +17,7 @@ class AppUser {
     this.photoUrl,
     this.bio = '',
     this.isPrivate = false,
+    this.isAdmin = false,
     this.createdAt,
   });
 
@@ -27,6 +29,7 @@ class AppUser {
       photoUrl: map['photoUrl'],
       bio: map['bio'] ?? '',
       isPrivate: map['isPrivate'] ?? false,
+      isAdmin: map['isAdmin'] == true,
       createdAt: (map['createdAt'] as Timestamp?)?.toDate(),
     );
   }

@@ -30,6 +30,19 @@ class PostRepository {
 
   final FirebaseFirestore _db;
 
+  static final _tagPattern = RegExp(r'#([\p{L}\p{M}\p{N}_]+)', unicode: true);
+
+  /// ดึงแฮชแท็กจากข้อความ (ตัวพิมพ์เล็ก ไม่ซ้ำ ไม่เกิน 10 แท็ก)
+  static List<String> extractTags(String text) {
+    final tags = <String>{};
+    for (final m in _tagPattern.allMatches(text)) {
+      final tag = m.group(1)!.toLowerCase();
+      if (tag.length <= 50) tags.add(tag);
+      if (tags.length >= 10) break;
+    }
+    return tags.toList();
+  }
+
   /// groupId == null = ฟีดหลัก (posts) / มีค่า = โพสต์ในกลุ่ม (groups/{id}/posts)
   CollectionReference<Map<String, dynamic>> _posts([String? groupId]) {
     if (groupId == null) return _db.collection(FirestorePaths.posts);
@@ -90,6 +103,25 @@ class PostRepository {
     }
   }
 
+  /// โพสต์ที่ติดแท็กนี้ในฟีดหลัก เรียงใหม่สุดก่อน (ต้องมี composite index: hashtags + createdAt)
+  Future<List<Post>> fetchByTag(String tag, {int limit = 30}) async {
+    try {
+      final snap = await _posts()
+          .where('hashtags', arrayContains: tag)
+          .orderBy('createdAt', descending: true)
+          .limit(limit)
+          .get();
+      return snap.docs.map(Post.fromDoc).toList();
+    } on FirebaseException catch (e) {
+      if (e.code == 'failed-precondition') {
+        throw PostException(
+          'ต้องสร้าง index ใน Firestore ก่อน (ดูขั้นตอน Index): ${e.message}',
+        );
+      }
+      throw PostException(_message(e.code));
+    }
+  }
+
   // ---------- โพสต์ ----------
 
   Future<void> createPost(
@@ -105,6 +137,7 @@ class PostRepository {
         'authorName': author.displayName,
         'authorPhotoUrl': author.photoUrl,
         'text': text,
+        'hashtags': extractTags(text),
         'mediaUrl': mediaUrl,
         'mediaType': mediaType,
         'createdAt': FieldValue.serverTimestamp(),
@@ -121,6 +154,7 @@ class PostRepository {
     try {
       await _posts(groupId).doc(postId).update({
         'text': text,
+        'hashtags': extractTags(text),
         'updatedAt': FieldValue.serverTimestamp(),
       });
     } on FirebaseException catch (e) {

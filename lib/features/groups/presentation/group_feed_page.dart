@@ -10,6 +10,7 @@ import '../../posts/presentation/post_card.dart';
 import '../data/group_models.dart';
 import '../data/group_repository.dart';
 import '../../profile/presentation/user_profile_page.dart';
+import '../../posts/presentation/tag_posts_page.dart';
 
 class GroupFeedPage extends StatefulWidget {
   const GroupFeedPage({super.key, required this.groupId, required this.me});
@@ -220,6 +221,12 @@ class _GroupFeedPageState extends State<GroupFeedPage> {
                     MaterialPageRoute(
                       builder: (_) =>
                           UserProfilePage(uid: post.authorId, me: widget.me),
+                    ),
+                  ),
+                  onTagTap: (tag) => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => TagPostsPage(tag: tag, me: widget.me),
                     ),
                   ),
                 );

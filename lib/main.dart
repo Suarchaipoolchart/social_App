@@ -12,6 +12,8 @@ import 'features/chat/data/chat_repository.dart';
 import 'features/groups/data/group_repository.dart';
 import 'features/follow/data/follow_repository.dart';
 import 'features/profile/data/user_repository.dart';
+import 'features/follow/data/feed_visibility.dart';
+import 'features/reports/data/report_repository.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -29,6 +31,8 @@ Future<void> main() async {
         Provider<GroupRepository>(create: (_) => GroupRepository()),
         Provider<FollowRepository>(create: (_) => FollowRepository()),
         Provider<UserRepository>(create: (_) => UserRepository()),
+        Provider<FeedVisibility>(create: (_) => FeedVisibility()),
+        Provider<ReportRepository>(create: (_) => ReportRepository()),
       ],
       child: const App(),
     ),

@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 
 import '../../auth/data/app_user.dart';
+import '../../reports/presentation/report_dialog.dart';
 import '../data/post_model.dart';
+import 'hashtag_text.dart';
 import 'post_video.dart';
 import 'reaction_bar.dart';
 
@@ -14,6 +16,7 @@ class PostCard extends StatelessWidget {
     this.onEdit,
     this.onDelete,
     this.onAuthorTap,
+    this.onTagTap,
   });
 
   final Post post;
@@ -22,6 +25,7 @@ class PostCard extends StatelessWidget {
   final VoidCallback? onEdit;
   final VoidCallback? onDelete;
   final VoidCallback? onAuthorTap; // แตะรูป/ชื่อผู้เขียนเพื่อเปิดโปรไฟล์
+  final void Function(String tag)? onTagTap; // แตะแฮชแท็กในโพสต์
 
   String _timeAgo(DateTime t) {
     final diff = DateTime.now().difference(t);
@@ -112,6 +116,7 @@ class PostCard extends StatelessWidget {
                     ),
                   ),
                 ),
+                // โพสต์ของตัวเอง: แก้ไข / ลบ
                 if (isOwner)
                   PopupMenuButton<String>(
                     onSelected: (v) {
@@ -123,11 +128,35 @@ class PostCard extends StatelessWidget {
                       PopupMenuItem(value: 'delete', child: Text('ลบ')),
                     ],
                   ),
+                // โพสต์ของคนอื่น: รายงาน
+                if (!isOwner && viewer != null)
+                  PopupMenuButton<String>(
+                    tooltip: 'ตัวเลือก',
+                    onSelected: (v) {
+                      if (v == 'report') {
+                        showReportDialog(
+                          context,
+                          post: post,
+                          reporter: viewer!,
+                        );
+                      }
+                    },
+                    itemBuilder: (_) => const [
+                      PopupMenuItem(
+                        value: 'report',
+                        child: Text('รายงานโพสต์'),
+                      ),
+                    ],
+                  ),
               ],
             ),
             if (post.text.isNotEmpty) ...[
               const SizedBox(height: 12),
-              Text(post.text, style: theme.textTheme.bodyLarge),
+              HashtagText(
+                text: post.text,
+                style: theme.textTheme.bodyLarge,
+                onTagTap: onTagTap,
+              ),
             ],
             if (post.mediaUrl != null) ...[
               const SizedBox(height: 12),

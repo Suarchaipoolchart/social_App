@@ -6,13 +6,16 @@ import '../../../routes/app_routes.dart';
 import '../../auth/data/app_user.dart';
 import '../../auth/data/auth_repository.dart';
 import '../../chat/presentation/chat_list_page.dart';
+import '../../follow/data/feed_visibility.dart';
 import '../../groups/presentation/groups_page.dart';
 import '../../posts/data/post_model.dart';
 import '../../posts/data/post_repository.dart';
 import '../../posts/presentation/create_post_page.dart';
 import '../../posts/presentation/post_card.dart';
+import '../../posts/presentation/tag_posts_page.dart';
 import '../../profile/presentation/user_profile_page.dart';
 import '../../profile/presentation/user_search_page.dart';
+import '../../reports/presentation/reports_page.dart';
 
 class FeedPage extends StatefulWidget {
   const FeedPage({super.key});
@@ -56,10 +59,31 @@ class _FeedPageState extends State<FeedPage> {
     }
   }
 
+  /// โหลดหน้าถัดไปแล้วกรองโพสต์บัญชีส่วนตัว ถ้าถูกกรองเกือบหมดจะโหลดต่ออีกสักหน้า
+  /// (สูงสุด 5 รอบ) เพื่อไม่ให้ฟีดสั้นจนเลื่อนโหลดเพิ่มไม่ได้
+  Future<PostPage> _fetchVisible(
+    DocumentSnapshot<Map<String, dynamic>>? after,
+  ) async {
+    final repo = context.read<PostRepository>();
+    final visibility = context.read<FeedVisibility>();
+    final uid = context.read<AuthRepository>().currentUser?.uid ?? '';
+
+    final collected = <Post>[];
+    var cursor = after;
+    var more = true;
+    for (var i = 0; i < 5 && collected.length < _pageSize && more; i++) {
+      final page = await repo.fetchPage(after: cursor, limit: _pageSize);
+      collected.addAll(await visibility.filter(page.posts, uid));
+      cursor = page.last;
+      more = page.hasMore;
+    }
+    return PostPage(posts: collected, last: cursor, hasMore: more);
+  }
+
   Future<void> _loadFirst() async {
     if (_loading) return;
 
-    final repo = context.read<PostRepository>();
+    context.read<FeedVisibility>().refresh();
 
     setState(() {
       _loading = true;
@@ -67,7 +91,7 @@ class _FeedPageState extends State<FeedPage> {
     });
 
     try {
-      final page = await repo.fetchPage(limit: _pageSize);
+      final page = await _fetchVisible(null);
 
       if (!mounted) return;
 
@@ -94,13 +118,12 @@ class _FeedPageState extends State<FeedPage> {
   Future<void> _loadMore() async {
     if (_loading || !_hasMore || _last == null) return;
 
-    final repo = context.read<PostRepository>();
     final messenger = ScaffoldMessenger.of(context);
 
     setState(() => _loading = true);
 
     try {
-      final page = await repo.fetchPage(after: _last, limit: _pageSize);
+      final page = await _fetchVisible(_last);
 
       if (!mounted) return;
 
@@ -237,7 +260,6 @@ class _FeedPageState extends State<FeedPage> {
                       ? null
                       : () => _openEditor(user, editing: post),
                   onDelete: () => _confirmDelete(post),
-
                   onAuthorTap: user == null
                       ? null
                       : () => Navigator.push(
@@ -245,6 +267,14 @@ class _FeedPageState extends State<FeedPage> {
                           MaterialPageRoute(
                             builder: (_) =>
                                 UserProfilePage(uid: post.authorId, me: user),
+                          ),
+                        ),
+                  onTagTap: user == null
+                      ? null
+                      : (tag) => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => TagPostsPage(tag: tag, me: user),
                           ),
                         ),
                 );
@@ -318,6 +348,16 @@ class _FeedPageState extends State<FeedPage> {
                       ),
               ),
 
+              // ปุ่มรายงาน (เฉพาะผู้ดูแลระบบ)
+              if (user != null && user.isAdmin)
+                IconButton(
+                  tooltip: 'รายงานที่รอตรวจ',
+                  icon: const Icon(Icons.flag_outlined),
+                  onPressed: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => ReportsPage(me: user)),
+                  ),
+                ),
               // ปุ่มโปรไฟล์
               IconButton(
                 tooltip: 'โปรไฟล์',

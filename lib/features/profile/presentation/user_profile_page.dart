@@ -11,6 +11,7 @@ import '../../posts/data/post_model.dart';
 import '../../posts/data/post_repository.dart';
 import '../../posts/presentation/post_card.dart';
 import 'edit_profile_page.dart';
+import '../../posts/presentation/tag_posts_page.dart';
 
 class UserProfilePage extends StatefulWidget {
   const UserProfilePage({super.key, required this.uid, required this.me});
@@ -326,6 +327,12 @@ class _AuthorPostsState extends State<_AuthorPosts> {
                 viewer: widget.me,
                 post: p,
                 isOwner: false, // แก้ไข/ลบจัดการที่ฟีดหลัก
+                onTagTap: (tag) => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => TagPostsPage(tag: tag, me: widget.me),
+                  ),
+                ),
               ),
           ],
         );
