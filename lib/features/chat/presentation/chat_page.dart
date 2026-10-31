@@ -25,6 +25,7 @@ class _ChatPageState extends State<ChatPage> {
   final _text = TextEditingController();
   final _picker = ImagePicker();
   bool _sending = false;
+  String? _lastMarked; // id ข้อความล่าสุดที่บันทึกว่าอ่านแล้ว กันเขียนซ้ำ
 
   late final String _chatId = ChatRepository.chatIdFor(
     widget.me.uid,
@@ -145,6 +146,14 @@ class _ChatPageState extends State<ChatPage> {
                   return const Center(child: CircularProgressIndicator());
                 }
                 final list = snap.data!;
+                if (list.isNotEmpty &&
+                    list.first.senderId != widget.me.uid &&
+                    list.first.id != _lastMarked) {
+                  _lastMarked = list.first.id;
+                  WidgetsBinding.instance.addPostFrameCallback(
+                    (_) => repo.markRead(_chatId, widget.me.uid),
+                  );
+                }
                 if (list.isEmpty) {
                   return const Center(
                     child: Text('ยังไม่มีข้อความ ทักทายกันเลย'),
@@ -238,6 +247,7 @@ class _Bubble extends StatelessWidget {
                 constraints: const BoxConstraints(maxHeight: 260),
                 child: Image.network(
                   media,
+                  semanticLabel: 'รูปภาพในแชต',
                   fit: BoxFit.cover,
                   loadingBuilder: (context, child, progress) => progress == null
                       ? child

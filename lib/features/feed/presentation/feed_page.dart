@@ -2,20 +2,19 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import '../../../routes/app_routes.dart';
 import '../../auth/data/app_user.dart';
 import '../../auth/data/auth_repository.dart';
 import '../../chat/presentation/chat_list_page.dart';
 import '../../follow/data/feed_visibility.dart';
-import '../../groups/presentation/groups_page.dart';
 import '../../posts/data/post_model.dart';
 import '../../posts/data/post_repository.dart';
 import '../../posts/presentation/create_post_page.dart';
 import '../../posts/presentation/post_card.dart';
 import '../../posts/presentation/tag_posts_page.dart';
 import '../../profile/presentation/user_profile_page.dart';
-import '../../profile/presentation/user_search_page.dart';
 import '../../reports/presentation/reports_page.dart';
+import '../../chat/data/chat_repository.dart';
+import '../../notifications/presentation/badge_icon.dart';
 
 class FeedPage extends StatefulWidget {
   const FeedPage({super.key});
@@ -141,11 +140,12 @@ class _FeedPageState extends State<FeedPage> {
     }
   }
 
-  Future<void> _openEditor(AppUser user, {Post? editing}) async {
+  Future<void> _openEditor(AppUser user, {Post? editing, String? pick}) async {
     await Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => CreatePostPage(user: user, editing: editing),
+        builder: (_) =>
+            CreatePostPage(user: user, editing: editing, initialPick: pick),
       ),
     );
 
@@ -195,6 +195,78 @@ class _FeedPageState extends State<FeedPage> {
     }
   }
 
+  Widget _composer(AppUser user) {
+    final scheme = Theme.of(context).colorScheme;
+    Widget action(IconData icon, String label, String pick) => Expanded(
+      child: TextButton.icon(
+        icon: Icon(icon, color: scheme.onSurfaceVariant),
+        label: Text(label, style: TextStyle(color: scheme.onSurfaceVariant)),
+        onPressed: () => _openEditor(user, pick: pick),
+      ),
+    );
+
+    return Card(
+      margin: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(12, 12, 12, 4),
+        child: Column(
+          children: [
+            Row(
+              children: [
+                CircleAvatar(
+                  radius: 20,
+                  backgroundImage: user.photoUrl != null
+                      ? NetworkImage(user.photoUrl!)
+                      : null,
+                  child: user.photoUrl == null
+                      ? Text(
+                          user.displayName.isNotEmpty
+                              ? user.displayName[0].toUpperCase()
+                              : '?',
+                        )
+                      : null,
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(24),
+                    onTap: () => _openEditor(user),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 12,
+                      ),
+                      decoration: BoxDecoration(
+                        border: Border.all(
+                          color: scheme.onSurfaceVariant.withValues(
+                            alpha: 0.35,
+                          ),
+                        ),
+                        borderRadius: BorderRadius.circular(24),
+                      ),
+                      child: Text(
+                        'คุณกำลังคิดอะไรอยู่?',
+                        style: TextStyle(color: scheme.onSurfaceVariant),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 4),
+            Row(
+              children: [
+                action(Icons.photo_camera_outlined, 'กล้อง', 'camera'),
+                action(Icons.image_outlined, 'รูปภาพ', 'image'),
+                action(Icons.videocam_outlined, 'วิดีโอ', 'video'),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _body(String uid, AppUser? user) {
     if (!_loadedOnce && _loading) {
       return const Center(child: CircularProgressIndicator());
@@ -219,6 +291,15 @@ class _FeedPageState extends State<FeedPage> {
       );
     }
 
+    return Column(
+      children: [
+        if (user != null) _composer(user),
+        Expanded(child: _list(uid, user)),
+      ],
+    );
+  }
+
+  Widget _list(String uid, AppUser? user) {
     return RefreshIndicator(
       onRefresh: _loadFirst,
       child: _posts.isEmpty
@@ -232,7 +313,7 @@ class _FeedPageState extends State<FeedPage> {
           : ListView.builder(
               controller: _scroll,
               physics: const AlwaysScrollableScrollPhysics(),
-              padding: const EdgeInsets.only(top: 8, bottom: 88),
+              padding: const EdgeInsets.only(top: 8, bottom: 16),
               itemCount: _posts.length + 1,
               itemBuilder: (context, i) {
                 if (i == _posts.length) {
@@ -299,45 +380,23 @@ class _FeedPageState extends State<FeedPage> {
 
         return Scaffold(
           appBar: AppBar(
-            title: const Text('ฟีด'),
+            centerTitle: false,
+            title: const Text(
+              'Social App',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
             actions: [
-              // ปุ่มรีเฟรช
-              IconButton(
-                tooltip: 'รีเฟรช',
-                icon: const Icon(Icons.refresh),
-                onPressed: _loading ? null : _loadFirst,
-              ),
-
-              // ปุ่มค้นหาผู้ใช้
-              IconButton(
-                tooltip: 'ค้นหาผู้ใช้',
-                icon: const Icon(Icons.search),
-                onPressed: user == null
-                    ? null
-                    : () => Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => UserSearchPage(me: user),
-                        ),
-                      ),
-              ),
-
-              // ปุ่มกลุ่มและเพจ
-              IconButton(
-                tooltip: 'กลุ่มและเพจ',
-                icon: const Icon(Icons.groups_outlined),
-                onPressed: user == null
-                    ? null
-                    : () => Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (_) => GroupsPage(me: user)),
-                      ),
-              ),
-
-              // ปุ่มแชต
+              // ปุ่มแชต (มีตัวเลขเมื่อมีข้อความที่ยังไม่อ่าน)
               IconButton(
                 tooltip: 'แชต',
-                icon: const Icon(Icons.chat_bubble_outline),
+                icon: user == null
+                    ? const Icon(Icons.chat_bubble_outline)
+                    : StreamBadgeIcon(
+                        stream: context.read<ChatRepository>().watchUnreadCount(
+                          user.uid,
+                        ),
+                        icon: const Icon(Icons.chat_bubble_outline),
+                      ),
                 onPressed: user == null
                     ? null
                     : () => Navigator.push(
@@ -358,24 +417,8 @@ class _FeedPageState extends State<FeedPage> {
                     MaterialPageRoute(builder: (_) => ReportsPage(me: user)),
                   ),
                 ),
-
-              // ปุ่มโปรไฟล์
-              IconButton(
-                tooltip: 'โปรไฟล์',
-                icon: const Icon(Icons.person),
-                onPressed: () {
-                  Navigator.pushNamed(context, AppRoutes.profile);
-                },
-              ),
             ],
           ),
-          floatingActionButton: user == null
-              ? null
-              : FloatingActionButton.extended(
-                  icon: const Icon(Icons.edit),
-                  label: const Text('โพสต์'),
-                  onPressed: () => _openEditor(user),
-                ),
           body: _body(uid, user),
         );
       },

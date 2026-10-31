@@ -143,12 +143,14 @@ class _ReactionBarState extends State<ReactionBar> {
           children: [
             _ReactButton(
               emoji: kReactionEmoji['like']!,
+              label: 'ถูกใจ',
               count: _n('like'),
               selected: _mine == 'like',
               onTap: () => _react('like'),
             ),
             _ReactButton(
               emoji: kReactionEmoji['dislike']!,
+              label: 'ไม่ถูกใจ',
               count: _n('dislike'),
               selected: _mine == 'dislike',
               onTap: () => _react('dislike'),
@@ -178,10 +180,15 @@ class _ReactionBarState extends State<ReactionBar> {
               ),
             ),
             const Spacer(),
-            TextButton.icon(
-              icon: const Icon(Icons.mode_comment_outlined, size: 20),
-              label: Text('$_commentCount'),
-              onPressed: _openComments,
+            Semantics(
+              button: true,
+              label: 'ความคิดเห็น $_commentCount รายการ',
+              excludeSemantics: true,
+              child: TextButton.icon(
+                icon: const Icon(Icons.mode_comment_outlined, size: 20),
+                label: Text('$_commentCount'),
+                onPressed: _openComments,
+              ),
             ),
           ],
         ),
@@ -193,12 +200,14 @@ class _ReactionBarState extends State<ReactionBar> {
 class _ReactButton extends StatelessWidget {
   const _ReactButton({
     required this.emoji,
+    required this.label,
     required this.count,
     required this.selected,
     required this.onTap,
   });
 
   final String emoji;
+  final String label;
   final int count;
   final bool selected;
   final VoidCallback onTap;
@@ -206,15 +215,21 @@ class _ReactButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    return TextButton(
-      onPressed: onTap,
-      style: TextButton.styleFrom(
-        foregroundColor: selected ? scheme.primary : scheme.onSurfaceVariant,
-        backgroundColor: selected
-            ? scheme.primary.withValues(alpha: 0.12)
-            : null,
+    return Semantics(
+      button: true,
+      selected: selected,
+      label: '$label $count',
+      excludeSemantics: true,
+      child: TextButton(
+        onPressed: onTap,
+        style: TextButton.styleFrom(
+          foregroundColor: selected ? scheme.primary : scheme.onSurfaceVariant,
+          backgroundColor: selected
+              ? scheme.primary.withValues(alpha: 0.12)
+              : null,
+        ),
+        child: Text('$emoji $count', style: const TextStyle(fontSize: 16)),
       ),
-      child: Text('$emoji $count', style: const TextStyle(fontSize: 16)),
     );
   }
 }

@@ -43,6 +43,7 @@ class PostCard extends StatelessWidget {
       constraints: const BoxConstraints(maxHeight: 420),
       child: Image.network(
         url,
+        semanticLabel: 'รูปภาพในโพสต์ของ ${post.authorName}',
         width: double.infinity,
         fit: BoxFit.cover,
         loadingBuilder: (context, child, progress) => progress == null

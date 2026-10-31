@@ -244,7 +244,7 @@ class _UserProfilePageState extends State<UserProfilePage> {
                         fontWeight: FontWeight.bold,
                       ),
                     ),
-                    _AuthorPosts(
+                    AuthorPosts(
                       key: ValueKey(target.uid),
                       uid: target.uid,
                       me: widget.me,
@@ -276,17 +276,25 @@ class _UserProfilePageState extends State<UserProfilePage> {
   }
 }
 
-class _AuthorPosts extends StatefulWidget {
-  const _AuthorPosts({super.key, required this.uid, required this.me});
+class AuthorPosts extends StatefulWidget {
+  const AuthorPosts({
+    super.key,
+    required this.uid,
+    required this.me,
+    this.mediaFilter,
+  });
 
   final String uid;
   final AppUser me;
 
+  /// null = แสดงทุกโพสต์เป็นรายการ, 'image' / 'video' = แสดงเฉพาะสื่อชนิดนั้นเป็นตาราง
+  final String? mediaFilter;
+
   @override
-  State<_AuthorPosts> createState() => _AuthorPostsState();
+  State<AuthorPosts> createState() => _AuthorPostsState();
 }
 
-class _AuthorPostsState extends State<_AuthorPosts> {
+class _AuthorPostsState extends State<AuthorPosts> {
   late final Future<List<Post>> _future;
 
   @override
@@ -312,11 +320,56 @@ class _AuthorPostsState extends State<_AuthorPosts> {
             child: Center(child: CircularProgressIndicator()),
           );
         }
-        final posts = snap.data!;
+        final all = snap.data!;
+        final filter = widget.mediaFilter;
+        final posts = filter == null
+            ? all
+            : all.where((p) => p.mediaType == filter).toList();
         if (posts.isEmpty) {
-          return const Padding(
-            padding: EdgeInsets.all(24),
-            child: Center(child: Text('ยังไม่มีโพสต์')),
+          return Padding(
+            padding: const EdgeInsets.all(24),
+            child: Center(
+              child: Text(
+                filter == 'image'
+                    ? 'ยังไม่มีรูปภาพ'
+                    : filter == 'video'
+                    ? 'ยังไม่มีวิดีโอ'
+                    : 'ยังไม่มีโพสต์',
+              ),
+            ),
+          );
+        }
+        if (filter != null) {
+          return GridView.count(
+            crossAxisCount: 2,
+            mainAxisSpacing: 8,
+            crossAxisSpacing: 8,
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            children: [
+              for (final p in posts)
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: filter == 'image'
+                      ? Image.network(
+                          p.mediaUrl!,
+                          fit: BoxFit.cover,
+                          semanticLabel: 'รูปภาพในโพสต์ของ ${p.authorName}',
+                          errorBuilder: (context, error, stack) =>
+                              const Center(child: Icon(Icons.broken_image)),
+                        )
+                      : Container(
+                          color: Colors.black87,
+                          child: const Center(
+                            child: Icon(
+                              Icons.play_circle_outline,
+                              color: Colors.white,
+                              size: 40,
+                            ),
+                          ),
+                        ),
+                ),
+            ],
           );
         }
         return Column(

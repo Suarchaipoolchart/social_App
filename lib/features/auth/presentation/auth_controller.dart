@@ -42,6 +42,7 @@ class AuthController extends ChangeNotifier {
     required String bio,
     required bool isPrivate,
     String? photoUrl,
+    String? coverUrl,
   }) => _run(
     () => _repo.updateProfile(
       uid,
@@ -49,6 +50,7 @@ class AuthController extends ChangeNotifier {
       bio: bio,
       isPrivate: isPrivate,
       photoUrl: photoUrl,
+      coverUrl: coverUrl,
     ),
   );
 

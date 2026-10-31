@@ -78,6 +78,7 @@ class AuthRepository {
     required String bio,
     required bool isPrivate,
     String? photoUrl,
+    String? coverUrl,
   }) async {
     try {
       await _db.doc(FirestorePaths.user(uid)).update({
@@ -86,6 +87,7 @@ class AuthRepository {
         'bio': bio,
         'isPrivate': isPrivate,
         'photoUrl': ?photoUrl,
+        'coverUrl': ?coverUrl,
       });
       await _auth.currentUser?.updateDisplayName(displayName);
       if (photoUrl != null) {

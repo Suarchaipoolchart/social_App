@@ -14,11 +14,14 @@ class CreatePostPage extends StatefulWidget {
     required this.user,
     this.editing,
     this.groupId,
+    this.initialPick,
   });
 
   final AppUser user;
   final Post? editing; // ถ้ามีค่า = โหมดแก้ไข
   final String? groupId; // ถ้ามีค่า = โพสต์ในกลุ่ม/เพจ
+  final String?
+  initialPick; // 'camera' | 'image' | 'video' เปิดตัวเลือกไฟล์ทันที
 
   @override
   State<CreatePostPage> createState() => _CreatePostPageState();
@@ -42,6 +45,15 @@ class _CreatePostPageState extends State<CreatePostPage> {
   void initState() {
     super.initState();
     _text = TextEditingController(text: widget.editing?.text ?? '');
+    final pick = widget.initialPick;
+    if (pick != null && !_isEdit) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _pickMedia(
+          video: pick == 'video',
+          source: pick == 'camera' ? ImageSource.camera : ImageSource.gallery,
+        );
+      });
+    }
   }
 
   @override
@@ -54,14 +66,17 @@ class _CreatePostPageState extends State<CreatePostPage> {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
   }
 
-  Future<void> _pickMedia({required bool video}) async {
+  Future<void> _pickMedia({
+    required bool video,
+    ImageSource source = ImageSource.gallery,
+  }) async {
     final file = video
         ? await _picker.pickVideo(
-            source: ImageSource.gallery,
+            source: source,
             maxDuration: const Duration(seconds: 60),
           )
         : await _picker.pickImage(
-            source: ImageSource.gallery,
+            source: source,
             imageQuality: 85,
             maxWidth: 1600,
           );

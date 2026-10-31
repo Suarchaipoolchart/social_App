@@ -76,13 +76,35 @@ class ChatListPage extends StatelessWidget {
                         )
                       : null,
                 ),
-                title: Text(c.peer.name),
+                title: Text(
+                  c.peer.name,
+                  style: c.unread
+                      ? const TextStyle(fontWeight: FontWeight.bold)
+                      : null,
+                ),
                 subtitle: Text(
                   '${mineLast ? 'คุณ: ' : ''}${c.lastMessage}',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
+                  style: c.unread
+                      ? const TextStyle(fontWeight: FontWeight.bold)
+                      : null,
                 ),
-                trailing: Text(_time(c.lastMessageAt)),
+                trailing: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (c.unread) ...[
+                      Icon(
+                        Icons.circle,
+                        size: 10,
+                        color: Theme.of(context).colorScheme.primary,
+                        semanticLabel: 'ยังไม่ได้อ่าน',
+                      ),
+                      const SizedBox(width: 6),
+                    ],
+                    Text(_time(c.lastMessageAt)),
+                  ],
+                ),
                 onTap: () => Navigator.push(
                   context,
                   MaterialPageRoute(

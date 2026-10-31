@@ -90,6 +90,21 @@ class ChatRepository {
     }
   }
 
+  /// บันทึกว่าเราเปิดอ่านห้องนี้แล้ว
+  Future<void> markRead(String chatId, String myUid) async {
+    try {
+      await _chats.doc(chatId).update({
+        'readAt.$myUid': FieldValue.serverTimestamp(),
+      });
+    } on FirebaseException {
+      // ห้องยังไม่ถูกสร้าง หรือไม่มีสิทธิ์ ข้ามไป
+    }
+  }
+
+  /// จำนวนห้องที่มีข้อความใหม่ยังไม่อ่าน (ไว้ทำตัวเลขบนไอคอน)
+  Stream<int> watchUnreadCount(String myUid) =>
+      watchChats(myUid).map((l) => l.where((c) => c.unread).length);
+
   /// รายชื่อผู้ใช้สำหรับเลือกเริ่มแชต (ข้อ 7 จะทำการค้นหาจริง)
   Future<List<ChatPeer>> fetchUsers(String myUid, {int limit = 50}) async {
     try {

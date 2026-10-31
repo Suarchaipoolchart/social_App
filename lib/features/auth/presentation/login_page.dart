@@ -36,6 +36,28 @@ class _LoginPageState extends State<LoginPage> {
     // ถ้าสำเร็จ AuthGate (Step 5) จะพาไปหน้าหลักเอง
   }
 
+  Future<void> _forgot() async {
+    final email = _email.text.trim();
+    final messenger = ScaffoldMessenger.of(context);
+    if (!email.contains('@')) {
+      messenger.showSnackBar(
+        const SnackBar(content: Text('กรอกอีเมลก่อน แล้วกด "ลืมรหัสผ่าน?"')),
+      );
+      return;
+    }
+    final ctrl = context.read<AuthController>();
+    final ok = await ctrl.resetPassword(email);
+    messenger.showSnackBar(
+      SnackBar(
+        content: Text(
+          ok
+              ? 'ส่งลิงก์ตั้งรหัสผ่านใหม่ไปที่อีเมลแล้ว'
+              : (ctrl.error ?? 'ส่งไม่สำเร็จ'),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final loading = context.watch<AuthController>().loading;
@@ -49,16 +71,35 @@ class _LoginPageState extends State<LoginPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
+                  Icon(
+                    Icons.forum_rounded,
+                    size: 72,
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
+                  const SizedBox(height: 12),
                   Text(
-                    'ยินดีต้อนรับกลับ',
-                    style: Theme.of(context).textTheme.headlineMedium,
+                    'SocialThai',
+                    style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
                     textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'เชื่อมต่อกับเพื่อนของคุณ',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
                   ),
                   const SizedBox(height: 32),
                   TextFormField(
                     controller: _email,
                     keyboardType: TextInputType.emailAddress,
-                    decoration: const InputDecoration(labelText: 'อีเมล'),
+                    decoration: const InputDecoration(
+                      labelText: 'อีเมล',
+                      hintText: 'ระบุอีเมลของคุณ',
+                    ),
                     validator: (v) => (v == null || !v.contains('@'))
                         ? 'กรอกอีเมลให้ถูกต้อง'
                         : null,
@@ -69,6 +110,7 @@ class _LoginPageState extends State<LoginPage> {
                     obscureText: _obscure,
                     decoration: InputDecoration(
                       labelText: 'รหัสผ่าน',
+                      hintText: 'ระบุรหัสผ่านของคุณ',
                       suffixIcon: IconButton(
                         icon: Icon(
                           _obscure ? Icons.visibility : Icons.visibility_off,
@@ -78,6 +120,13 @@ class _LoginPageState extends State<LoginPage> {
                     ),
                     validator: (v) =>
                         (v == null || v.isEmpty) ? 'กรอกรหัสผ่าน' : null,
+                  ),
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: TextButton(
+                      onPressed: loading ? null : _forgot,
+                      child: const Text('ลืมรหัสผ่าน?'),
+                    ),
                   ),
                   const SizedBox(height: 24),
                   FilledButton(

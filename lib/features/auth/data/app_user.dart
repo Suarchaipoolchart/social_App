@@ -5,6 +5,7 @@ class AppUser {
   final String displayName;
   final String email;
   final String? photoUrl;
+  final String? coverUrl; // รูปปกโปรไฟล์
   final String bio;
   final bool isPrivate;
   final bool isAdmin; // ตั้งจาก Firebase Console เท่านั้น
@@ -15,6 +16,7 @@ class AppUser {
     required this.displayName,
     required this.email,
     this.photoUrl,
+    this.coverUrl,
     this.bio = '',
     this.isPrivate = false,
     this.isAdmin = false,
@@ -27,6 +29,7 @@ class AppUser {
       displayName: map['displayName'] ?? '',
       email: map['email'] ?? '',
       photoUrl: map['photoUrl'],
+      coverUrl: map['coverUrl'],
       bio: map['bio'] ?? '',
       isPrivate: map['isPrivate'] ?? false,
       isAdmin: map['isAdmin'] == true,

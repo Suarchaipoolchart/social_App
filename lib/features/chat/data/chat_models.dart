@@ -16,6 +16,7 @@ class ChatSummary {
   final String lastMessage;
   final String lastSenderId;
   final DateTime? lastMessageAt;
+  final bool unread; // มีข้อความจากอีกฝั่งที่เรายังไม่ได้เปิดอ่าน
 
   const ChatSummary({
     required this.id,
@@ -23,6 +24,7 @@ class ChatSummary {
     required this.lastMessage,
     required this.lastSenderId,
     this.lastMessageAt,
+    this.unread = false,
   });
 
   factory ChatSummary.fromDoc(
@@ -36,6 +38,14 @@ class ChatSummary {
       orElse: () => '',
     );
     final info = (data['participantInfo'] as Map?)?[otherUid] as Map?;
+    final lastAt = (data['lastMessageAt'] as Timestamp?)?.toDate();
+    final readAt = ((data['readAt'] as Map?)?[myUid] as Timestamp?)?.toDate();
+    final lastSender = (data['lastSenderId'] as String?) ?? '';
+    final unread =
+        lastSender.isNotEmpty &&
+        lastSender != myUid &&
+        lastAt != null &&
+        (readAt == null || readAt.isBefore(lastAt));
 
     return ChatSummary(
       id: doc.id,
@@ -47,6 +57,7 @@ class ChatSummary {
       lastMessage: data['lastMessage'] ?? '',
       lastSenderId: data['lastSenderId'] ?? '',
       lastMessageAt: (data['lastMessageAt'] as Timestamp?)?.toDate(),
+      unread: unread,
     );
   }
 }

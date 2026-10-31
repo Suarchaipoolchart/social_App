@@ -103,6 +103,19 @@ class PostRepository {
     }
   }
 
+  /// จำนวนโพสต์ของผู้ใช้คนหนึ่งในฟีดหลัก
+  Future<int> countByAuthor(String authorId) async {
+    try {
+      final snap = await _posts()
+          .where('authorId', isEqualTo: authorId)
+          .count()
+          .get();
+      return snap.count ?? 0;
+    } on FirebaseException catch (e) {
+      throw PostException(_message(e.code));
+    }
+  }
+
   /// โพสต์ที่ติดแท็กนี้ในฟีดหลัก เรียงใหม่สุดก่อน (ต้องมี composite index: hashtags + createdAt)
   Future<List<Post>> fetchByTag(String tag, {int limit = 30}) async {
     try {

@@ -3,9 +3,10 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import 'core/theme/app_theme.dart';
+import 'core/theme/theme_controller.dart';
 import 'features/auth/data/auth_repository.dart';
 import 'features/auth/presentation/login_page.dart';
-import 'features/feed/presentation/feed_page.dart';
+import 'features/home/presentation/home_shell.dart';
 import 'routes/app_routes.dart';
 
 class App extends StatelessWidget {
@@ -18,7 +19,7 @@ class App extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light,
       darkTheme: AppTheme.dark,
-      themeMode: ThemeMode.system,
+      themeMode: context.watch<ThemeController>().mode,
       routes: AppRoutes.routes,
       home: const AuthGate(),
     );
@@ -40,7 +41,7 @@ class AuthGate extends StatelessWidget {
           );
         }
         // ใช้ FeedPage เป็นหน้าหลักชั่วคราว
-        return snap.hasData ? const FeedPage() : const LoginPage();
+        return snap.hasData ? const HomeShell() : const LoginPage();
       },
     );
   }

@@ -14,15 +14,19 @@ import 'features/follow/data/follow_repository.dart';
 import 'features/profile/data/user_repository.dart';
 import 'features/follow/data/feed_visibility.dart';
 import 'features/reports/data/report_repository.dart';
+import 'core/theme/theme_controller.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
   final repo = AuthRepository();
+  final themeCtrl = ThemeController();
+  await themeCtrl.load(); // อ่านโหมดสว่าง/มืดที่เคยเลือกไว้ก่อนวาดหน้าแรก
   runApp(
     MultiProvider(
       providers: [
+        ChangeNotifierProvider<ThemeController>.value(value: themeCtrl),
         Provider<AuthRepository>.value(value: repo),
         Provider<PostRepository>(create: (_) => PostRepository()),
         ChangeNotifierProvider(create: (_) => AuthController(repo)),
