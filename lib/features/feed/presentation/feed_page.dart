@@ -358,6 +358,7 @@ class _FeedPageState extends State<FeedPage> {
                     MaterialPageRoute(builder: (_) => ReportsPage(me: user)),
                   ),
                 ),
+
               // ปุ่มโปรไฟล์
               IconButton(
                 tooltip: 'โปรไฟล์',
