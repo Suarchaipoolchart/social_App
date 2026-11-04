@@ -14,12 +14,13 @@ class App extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final themeCtrl = context.watch<ThemeController>();
     return MaterialApp(
       title: 'Social App',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light,
-      darkTheme: AppTheme.dark,
-      themeMode: context.watch<ThemeController>().mode,
+      darkTheme: AppTheme.darkWith(themeCtrl.accent.color),
+      themeMode: themeCtrl.mode,
       routes: AppRoutes.routes,
       home: const AuthGate(),
     );

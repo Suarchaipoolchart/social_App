@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../../../core/constants/firestore_paths.dart';
 import '../../auth/data/app_user.dart';
+import '../../notifications/data/notification_repository.dart';
 import 'comment_model.dart';
 import 'post_model.dart';
 
@@ -29,6 +30,7 @@ class PostRepository {
   static const _reactions = 'reactions';
 
   final FirebaseFirestore _db;
+  final NotificationRepository _notify = NotificationRepository();
 
   static final _tagPattern = RegExp(r'#([\p{L}\p{M}\p{N}_]+)', unicode: true);
 
@@ -84,7 +86,17 @@ class PostRepository {
     }
   }
 
-  /// โพสต์ของผู้ใช้คนหนึ่งในฟีดหลัก (ต้องสร้าง composite index ก่อน ดู Step 9)
+  /// โพสต์เดียว (null ถ้าถูกลบไปแล้ว)
+  Future<Post?> fetchOne(String postId, {String? groupId}) async {
+    try {
+      final snap = await _posts(groupId).doc(postId).get();
+      return snap.exists ? Post.fromDoc(snap) : null;
+    } on FirebaseException catch (e) {
+      throw PostException(_message(e.code));
+    }
+  }
+
+  /// โพสต์ของผู้ใช้คนหนึ่งในฟีดหลัก (ต้องมี composite index: authorId + createdAt)
   Future<List<Post>> fetchByAuthor(String authorId, {int limit = 20}) async {
     try {
       final snap = await _posts()
@@ -145,7 +157,7 @@ class PostRepository {
     String? groupId,
   }) async {
     try {
-      await _posts(groupId).add({
+      final ref = await _posts(groupId).add({
         'authorId': author.uid,
         'authorName': author.displayName,
         'authorPhotoUrl': author.photoUrl,
@@ -157,7 +169,15 @@ class PostRepository {
         'updatedAt': null,
         'reactionCounts': <String, int>{},
         'commentCount': 0,
+        'shareCount': 0,
       });
+      // แจ้งผู้ติดตาม / สมาชิกกลุ่ม (ไม่ throw)
+      await _notify.notifyPost(
+        author: author,
+        postId: ref.id,
+        text: text,
+        groupId: groupId,
+      );
     } on FirebaseException catch (e) {
       throw PostException(_message(e.code));
     }
@@ -183,6 +203,61 @@ class PostRepository {
     }
   }
 
+  /// แชร์โพสต์ไปยังฟีดหลักของคนแชร์ (แชร์ซ้ำจะชี้ไปที่โพสต์ต้นทางเสมอ)
+  Future<void> sharePost(AppUser sharer, Post original, String caption) async {
+    final source = original.shared ?? SharedPost.fromPost(original);
+    try {
+      // ไม่แชร์โพสต์ของบัญชีส่วนตัวไปยังฟีดสาธารณะ
+      if (source.authorId != sharer.uid) {
+        final author = await _db
+            .collection(FirestorePaths.users)
+            .doc(source.authorId)
+            .get();
+        if (author.data()?['isPrivate'] == true) {
+          throw PostException('ไม่สามารถแชร์โพสต์ของบัญชีส่วนตัวได้');
+        }
+      }
+
+      final newRef = _posts().doc();
+      final batch = _db.batch();
+      batch.set(newRef, {
+        'authorId': sharer.uid,
+        'authorName': sharer.displayName,
+        'authorPhotoUrl': sharer.photoUrl,
+        'text': caption,
+        'hashtags': extractTags(caption),
+        'mediaUrl': null,
+        'mediaType': null,
+        'shared': source.toMap(),
+        'createdAt': FieldValue.serverTimestamp(),
+        'updatedAt': null,
+        'reactionCounts': <String, int>{},
+        'commentCount': 0,
+        'shareCount': 0,
+      });
+      batch.update(_posts(source.groupId).doc(source.postId), {
+        'shareCount': FieldValue.increment(1),
+      });
+      await batch.commit();
+
+      await _notify.send(
+        toUid: source.authorId,
+        type: 'share',
+        actor: sharer,
+        postId: source.postId,
+        groupId: source.groupId,
+        snippet: source.text,
+      );
+      await _notify.notifyPost(
+        author: sharer,
+        postId: newRef.id,
+        text: caption.isEmpty ? 'แชร์โพสต์ของ ${source.authorName}' : caption,
+      );
+    } on FirebaseException catch (e) {
+      throw PostException(_message(e.code));
+    }
+  }
+
   // ---------- รีแอคชัน ----------
 
   /// รีแอคชันของผู้ใช้คนนี้ในโพสต์ (null = ยังไม่ได้รีแอคชัน)
@@ -202,18 +277,24 @@ class PostRepository {
   }
 
   /// ตั้งรีแอคชัน (type = null คือยกเลิก) พร้อมปรับตัวนับในโพสต์
+  /// ถ้าส่ง actor กับ postAuthorId มาด้วย จะแจ้งเจ้าของโพสต์เมื่อมีรีแอคชันใหม่
   Future<void> setReaction(
     String postId,
     String uid,
     String? type, {
     String? groupId,
+    AppUser? actor,
+    String? postAuthorId,
+    String postText = '',
   }) async {
     final postRef = _posts(groupId).doc(postId);
     final reactRef = postRef.collection(_reactions).doc(uid);
+    String? previous;
     try {
       await _db.runTransaction((tx) async {
         final existing = await tx.get(reactRef);
         final old = existing.data()?['type'] as String?;
+        previous = old;
         if (old == type) return;
 
         final counts = <String, dynamic>{};
@@ -236,6 +317,22 @@ class PostRepository {
       });
     } on FirebaseException catch (e) {
       throw PostException(_message(e.code));
+    }
+
+    if (type != null &&
+        previous != type &&
+        actor != null &&
+        postAuthorId != null) {
+      await _notify.send(
+        toUid: postAuthorId,
+        type: 'reaction',
+        actor: actor,
+        id: 'reaction_${postId}_${actor.uid}',
+        postId: postId,
+        groupId: groupId,
+        snippet: postText,
+        extra: type,
+      );
     }
   }
 
@@ -269,6 +366,7 @@ class PostRepository {
     AppUser author,
     String text, {
     String? groupId,
+    String? postAuthorId,
   }) async {
     final postRef = _posts(groupId).doc(postId);
     final commentRef = postRef.collection(FirestorePaths.comments).doc();
@@ -285,6 +383,17 @@ class PostRepository {
       await batch.commit();
     } on FirebaseException catch (e) {
       throw PostException(_message(e.code));
+    }
+
+    if (postAuthorId != null) {
+      await _notify.send(
+        toUid: postAuthorId,
+        type: 'comment',
+        actor: author,
+        postId: postId,
+        groupId: groupId,
+        snippet: text,
+      );
     }
   }
 

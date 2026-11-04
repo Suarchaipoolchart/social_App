@@ -248,16 +248,12 @@ class _GroupFeedPageState extends State<GroupFeedPage> {
           );
         }
 
-        // กลุ่ม: สมาชิกโพสต์ได้ / เพจ: เฉพาะผู้ดูแล
-        final canPost =
-            g != null &&
-            (g.isPage ? g.isOwner(widget.me.uid) : g.isMember(widget.me.uid));
+        // กลุ่มและเพจ: สมาชิก/ผู้ติดตาม (รวมผู้ดูแล) โพสต์ได้
+        final canPost = g != null && g.isMember(widget.me.uid);
 
         String? hint;
         if (g != null && !canPost) {
-          hint = g.isPage
-              ? 'เฉพาะผู้ดูแลเพจที่โพสต์ได้'
-              : 'เข้าร่วมกลุ่มเพื่อโพสต์';
+          hint = g.isPage ? 'ติดตามเพจเพื่อโพสต์' : 'เข้าร่วมกลุ่มเพื่อโพสต์';
         }
 
         return Scaffold(

@@ -8,7 +8,7 @@ import '../../follow/data/follow_repository.dart';
 import '../../follow/presentation/follow_requests_page.dart';
 import '../../notifications/presentation/badge_icon.dart';
 import '../../posts/data/post_repository.dart';
-import '../../../core/theme/theme_controller.dart';
+import '../../settings/presentation/theme_page.dart';
 import 'edit_profile_page.dart';
 import 'user_profile_page.dart';
 
@@ -38,31 +38,13 @@ class _ProfilePageState extends State<ProfilePage> {
           appBar: AppBar(
             title: const Text('โปรไฟล์'),
             actions: [
-              // ถาดสี: กดแล้วมีเมนูเลือกโหมดสว่าง/มืด/ตามระบบเด้งลงมา
-              PopupMenuButton<ThemeMode>(
+              IconButton(
                 tooltip: 'ธีมและการแสดงผล',
                 icon: const Icon(Icons.palette_outlined),
-                onSelected: context.read<ThemeController>().setMode,
-                itemBuilder: (_) {
-                  final current = context.read<ThemeController>().mode;
-                  return [
-                    CheckedPopupMenuItem(
-                      value: ThemeMode.system,
-                      checked: current == ThemeMode.system,
-                      child: const Text('ตามระบบ'),
-                    ),
-                    CheckedPopupMenuItem(
-                      value: ThemeMode.light,
-                      checked: current == ThemeMode.light,
-                      child: const Text('สว่าง'),
-                    ),
-                    CheckedPopupMenuItem(
-                      value: ThemeMode.dark,
-                      checked: current == ThemeMode.dark,
-                      child: const Text('มืด'),
-                    ),
-                  ];
-                },
+                onPressed: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const ThemePage()),
+                ),
               ),
               IconButton(
                 tooltip: 'ออกจากระบบ',

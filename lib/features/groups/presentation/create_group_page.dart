@@ -1,6 +1,10 @@
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 
+import '../../../core/services/cloudinary_service.dart';
 import '../../auth/data/app_user.dart';
 import '../data/group_models.dart';
 import '../data/group_repository.dart';
@@ -20,6 +24,9 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
   late final TextEditingController _desc;
   late String _type;
   bool _saving = false;
+  final _picker = ImagePicker();
+  XFile? _photo;
+  Uint8List? _photoBytes;
 
   bool get _isEdit => widget.editing != null;
 
@@ -38,6 +45,21 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
     super.dispose();
   }
 
+  Future<void> _pickPhoto() async {
+    final file = await _picker.pickImage(
+      source: ImageSource.gallery,
+      imageQuality: 85,
+      maxWidth: 800,
+    );
+    if (file == null) return;
+    final bytes = await file.readAsBytes();
+    if (!mounted) return;
+    setState(() {
+      _photo = file;
+      _photoBytes = bytes;
+    });
+  }
+
   Future<void> _submit() async {
     final name = _name.text.trim();
     if (name.isEmpty) {
@@ -47,16 +69,22 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
       return;
     }
     final repo = context.read<GroupRepository>();
+    final cloud = context.read<CloudinaryService>();
     final navigator = Navigator.of(context);
     final messenger = ScaffoldMessenger.of(context);
 
     setState(() => _saving = true);
     try {
+      String? photoUrl;
+      if (_photo != null) {
+        photoUrl = await cloud.upload(_photo!, isVideo: false);
+      }
       if (_isEdit) {
         await repo.updateGroup(
           widget.editing!.id,
           name: name,
           description: _desc.text.trim(),
+          photoUrl: photoUrl,
         );
       } else {
         await repo.createGroup(
@@ -64,10 +92,13 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
           name: name,
           description: _desc.text.trim(),
           type: _type,
+          photoUrl: photoUrl,
         );
       }
       navigator.pop();
     } on GroupException catch (e) {
+      messenger.showSnackBar(SnackBar(content: Text(e.message)));
+    } on UploadException catch (e) {
       messenger.showSnackBar(SnackBar(content: Text(e.message)));
     } finally {
       if (mounted) setState(() => _saving = false);
@@ -86,6 +117,44 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            Center(
+              child: Stack(
+                children: [
+                  CircleAvatar(
+                    radius: 48,
+                    backgroundImage: _photoBytes != null
+                        ? MemoryImage(_photoBytes!)
+                        : (widget.editing?.photoUrl != null
+                              ? NetworkImage(widget.editing!.photoUrl!)
+                                    as ImageProvider
+                              : null),
+                    child:
+                        (_photoBytes == null &&
+                            widget.editing?.photoUrl == null)
+                        ? Icon(
+                            _type == 'page' ? Icons.flag : Icons.groups,
+                            size: 40,
+                          )
+                        : null,
+                  ),
+                  Positioned(
+                    right: 0,
+                    bottom: 0,
+                    child: CircleAvatar(
+                      radius: 16,
+                      child: IconButton(
+                        padding: EdgeInsets.zero,
+                        iconSize: 18,
+                        tooltip: 'เลือกรูปโปรไฟล์',
+                        icon: const Icon(Icons.camera_alt),
+                        onPressed: _saving ? null : _pickPhoto,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 20),
             SegmentedButton<String>(
               segments: const [
                 ButtonSegment(

@@ -64,6 +64,7 @@ class GroupRepository {
     required String name,
     required String description,
     required String type,
+    String? photoUrl,
   }) async {
     final ref = _col.doc();
     try {
@@ -75,6 +76,7 @@ class GroupRepository {
         'type': type,
         'ownerId': me.uid,
         'ownerName': me.displayName,
+        'photoUrl': photoUrl,
         'memberCount': 1,
         'memberIds': [me.uid],
         'createdAt': FieldValue.serverTimestamp(),
@@ -95,12 +97,14 @@ class GroupRepository {
     String groupId, {
     required String name,
     required String description,
+    String? photoUrl, // null = ไม่เปลี่ยนรูป
   }) async {
     try {
       await _col.doc(groupId).update({
         'name': name,
         'nameLower': name.toLowerCase(),
         'description': description,
+        'photoUrl': ?photoUrl,
         'updatedAt': FieldValue.serverTimestamp(),
       });
     } on FirebaseException catch (e) {

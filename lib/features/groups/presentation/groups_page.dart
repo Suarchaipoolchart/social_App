@@ -70,7 +70,7 @@ class _GroupsPageState extends State<GroupsPage> {
   }
 }
 
-class _GroupList extends StatelessWidget {
+class _GroupList extends StatefulWidget {
   const _GroupList({
     required this.stream,
     required this.me,
@@ -82,9 +82,17 @@ class _GroupList extends StatelessWidget {
   final String emptyText;
 
   @override
+  State<_GroupList> createState() => _GroupListState();
+}
+
+class _GroupListState extends State<_GroupList> {
+  String _query = '';
+
+  @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return StreamBuilder<List<Group>>(
-      stream: stream,
+      stream: widget.stream,
       builder: (context, snap) {
         if (snap.hasError) {
           return Center(
@@ -97,41 +105,157 @@ class _GroupList extends StatelessWidget {
         if (!snap.hasData) {
           return const Center(child: CircularProgressIndicator());
         }
-        final list = snap.data!;
-        if (list.isEmpty) {
-          return Center(child: Text(emptyText, textAlign: TextAlign.center));
+        final all = snap.data!;
+        if (all.isEmpty) {
+          return Center(
+            child: Text(widget.emptyText, textAlign: TextAlign.center),
+          );
         }
-        return ListView.separated(
-          padding: const EdgeInsets.only(bottom: 88),
-          itemCount: list.length,
-          separatorBuilder: (context, index) => const Divider(height: 1),
-          itemBuilder: (context, i) {
-            final g = list[i];
-            final isOwner = g.isOwner(me.uid);
-            final isMember = g.isMember(me.uid);
-            return ListTile(
-              leading: CircleAvatar(
-                child: Icon(g.isPage ? Icons.flag : Icons.groups),
-              ),
-              title: Text(g.name),
-              subtitle: Text(
-                '${g.typeLabel} · ${g.memberCount} ${g.memberLabel}',
-              ),
-              trailing: isOwner
-                  ? const Chip(label: Text('ผู้ดูแล'))
-                  : isMember
-                  ? const Icon(Icons.check_circle_outline)
-                  : null,
-              onTap: () => Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => GroupDetailPage(groupId: g.id, me: me),
+        final q = _query.trim().toLowerCase();
+        final list = q.isEmpty
+            ? all
+            : all
+                  .where(
+                    (g) =>
+                        g.name.toLowerCase().contains(q) ||
+                        g.description.toLowerCase().contains(q),
+                  )
+                  .toList();
+
+        return Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+              child: TextField(
+                onChanged: (v) => setState(() => _query = v),
+                decoration: InputDecoration(
+                  hintText: 'ค้นหากลุ่มหรือเพจ',
+                  prefixIcon: const Icon(Icons.search),
+                  isDense: true,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(24),
+                  ),
                 ),
               ),
-            );
-          },
+            ),
+            Expanded(
+              child: list.isEmpty
+                  ? const Center(child: Text('ไม่พบผลการค้นหา'))
+                  : ListView.builder(
+                      padding: const EdgeInsets.fromLTRB(16, 8, 16, 88),
+                      itemCount: list.length,
+                      itemBuilder: (context, i) =>
+                          _buildCard(context, theme, list[i]),
+                    ),
+            ),
+          ],
         );
       },
+    );
+  }
+
+  Widget _buildCard(BuildContext context, ThemeData theme, Group g) {
+    final isOwner = g.isOwner(widget.me.uid);
+    final isMember = g.isMember(widget.me.uid);
+    final scheme = theme.colorScheme;
+
+    Widget? badge;
+    if (isOwner) {
+      badge = _Badge(text: 'ผู้ดูแล', color: scheme.primary);
+    } else if (isMember) {
+      badge = _Badge(
+        text: g.isPage ? 'กำลังติดตาม' : 'เป็นสมาชิก',
+        color: scheme.tertiary,
+      );
+    }
+
+    return Card(
+      margin: const EdgeInsets.only(bottom: 12),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: () => Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => GroupDetailPage(groupId: g.id, me: widget.me),
+          ),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(14),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              CircleAvatar(
+                radius: 26,
+                backgroundColor: scheme.primaryContainer,
+                foregroundColor: scheme.onPrimaryContainer,
+                backgroundImage: g.photoUrl != null
+                    ? NetworkImage(g.photoUrl!)
+                    : null,
+                child: g.photoUrl == null
+                    ? Icon(g.isPage ? Icons.flag : Icons.groups)
+                    : null,
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      g.name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      '${g.typeLabel} · ${g.memberCount} ${g.memberLabel}',
+                      style: theme.textTheme.bodySmall,
+                    ),
+                    if (g.description.isNotEmpty) ...[
+                      const SizedBox(height: 6),
+                      Text(
+                        g.description,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.bodyMedium,
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              if (badge != null) ...[const SizedBox(width: 8), badge],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _Badge extends StatelessWidget {
+  const _Badge({required this.text, required this.color});
+
+  final String text;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Text(
+        text,
+        style: TextStyle(
+          color: color,
+          fontSize: 12,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
     );
   }
 }

@@ -39,6 +39,7 @@ class _CommentsPageState extends State<CommentsPage> {
         widget.viewer,
         text,
         groupId: widget.post.groupId,
+        postAuthorId: widget.post.authorId,
       );
       _text.clear();
     } on PostException catch (e) {

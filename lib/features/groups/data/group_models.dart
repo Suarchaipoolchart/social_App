@@ -7,6 +7,7 @@ class Group {
   final String type; // 'group' | 'page'
   final String ownerId;
   final String ownerName;
+  final String? photoUrl;
   final int memberCount;
   final List<String> memberIds;
   final DateTime createdAt;
@@ -19,6 +20,7 @@ class Group {
     required this.type,
     required this.ownerId,
     required this.ownerName,
+    this.photoUrl,
     required this.memberCount,
     required this.memberIds,
     required this.createdAt,
@@ -43,6 +45,7 @@ class Group {
       type: data['type'] ?? 'group',
       ownerId: data['ownerId'] ?? '',
       ownerName: data['ownerName'] ?? '',
+      photoUrl: data['photoUrl'] as String?,
       memberCount: (data['memberCount'] as num?)?.toInt() ?? 0,
       memberIds: List<String>.from(data['memberIds'] ?? const []),
       createdAt: (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),

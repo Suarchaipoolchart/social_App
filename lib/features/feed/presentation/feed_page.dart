@@ -15,6 +15,8 @@ import '../../profile/presentation/user_profile_page.dart';
 import '../../reports/presentation/reports_page.dart';
 import '../../chat/data/chat_repository.dart';
 import '../../notifications/presentation/badge_icon.dart';
+import '../../notifications/presentation/notification_bell.dart';
+import '../../stories/presentation/stories_bar.dart';
 
 class FeedPage extends StatefulWidget {
   const FeedPage({super.key});
@@ -58,8 +60,6 @@ class _FeedPageState extends State<FeedPage> {
     }
   }
 
-  /// โหลดหน้าถัดไปแล้วกรองโพสต์บัญชีส่วนตัว ถ้าถูกกรองเกือบหมดจะโหลดต่ออีกสักหน้า
-  /// (สูงสุด 5 รอบ) เพื่อไม่ให้ฟีดสั้นจนเลื่อนโหลดเพิ่มไม่ได้
   Future<PostPage> _fetchVisible(
     DocumentSnapshot<Map<String, dynamic>>? after,
   ) async {
@@ -132,7 +132,9 @@ class _FeedPageState extends State<FeedPage> {
         _hasMore = page.hasMore;
       });
     } on PostException catch (e) {
-      messenger.showSnackBar(SnackBar(content: Text(e.message)));
+      if (mounted) {
+        messenger.showSnackBar(SnackBar(content: Text(e.message)));
+      }
     } finally {
       if (mounted) {
         setState(() => _loading = false);
@@ -180,30 +182,63 @@ class _FeedPageState extends State<FeedPage> {
       ),
     );
 
-    if (ok != true) return;
+    if (!mounted || ok != true) return;
 
     try {
       await repo.deletePost(post.id);
 
-      if (mounted) {
-        setState(() {
-          _posts.removeWhere((p) => p.id == post.id);
-        });
-      }
+      if (!mounted) return;
+      setState(() {
+        _posts.removeWhere((p) => p.id == post.id);
+      });
     } on PostException catch (e) {
+      if (!mounted) return;
       messenger.showSnackBar(SnackBar(content: Text(e.message)));
     }
   }
 
-  Widget _composer(AppUser user) {
-    final scheme = Theme.of(context).colorScheme;
-    Widget action(IconData icon, String label, String pick) => Expanded(
-      child: TextButton.icon(
-        icon: Icon(icon, color: scheme.onSurfaceVariant),
-        label: Text(label, style: TextStyle(color: scheme.onSurfaceVariant)),
-        onPressed: () => _openEditor(user, pick: pick),
+  Widget _composerAction(
+    IconData icon,
+    String label,
+    String pick,
+    Color foreground,
+    AppUser user,
+  ) {
+    return Expanded(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 2),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(10),
+          onTap: () => _openEditor(user, pick: pick),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 2),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(icon, color: foreground, size: 21),
+                const SizedBox(height: 3),
+                SizedBox(
+                  width: double.infinity,
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text(
+                      label,
+                      maxLines: 1,
+                      softWrap: false,
+                      style: TextStyle(color: foreground, fontSize: 12),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
+  }
+
+  Widget _composer(AppUser user) {
+    final scheme = Theme.of(context).colorScheme;
 
     return Card(
       margin: const EdgeInsets.fromLTRB(16, 8, 16, 4),
@@ -246,6 +281,8 @@ class _FeedPageState extends State<FeedPage> {
                       ),
                       child: Text(
                         'คุณกำลังคิดอะไรอยู่?',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                         style: TextStyle(color: scheme.onSurfaceVariant),
                       ),
                     ),
@@ -256,9 +293,27 @@ class _FeedPageState extends State<FeedPage> {
             const SizedBox(height: 4),
             Row(
               children: [
-                action(Icons.photo_camera_outlined, 'กล้อง', 'camera'),
-                action(Icons.image_outlined, 'รูปภาพ', 'image'),
-                action(Icons.videocam_outlined, 'วิดีโอ', 'video'),
+                _composerAction(
+                  Icons.photo_camera_outlined,
+                  'กล้อง',
+                  'camera',
+                  scheme.onSurfaceVariant,
+                  user,
+                ),
+                _composerAction(
+                  Icons.image_outlined,
+                  'รูปภาพ',
+                  'image',
+                  scheme.onSurfaceVariant,
+                  user,
+                ),
+                _composerAction(
+                  Icons.videocam_outlined,
+                  'วิดีโอ',
+                  'video',
+                  scheme.onSurfaceVariant,
+                  user,
+                ),
               ],
             ),
           ],
@@ -294,6 +349,9 @@ class _FeedPageState extends State<FeedPage> {
     return Column(
       children: [
         if (user != null) _composer(user),
+
+        if (user != null) StoriesBar(me: user),
+
         Expanded(child: _list(uid, user)),
       ],
     );
@@ -386,7 +444,6 @@ class _FeedPageState extends State<FeedPage> {
               style: TextStyle(fontWeight: FontWeight.bold),
             ),
             actions: [
-              // ปุ่มแชต (มีตัวเลขเมื่อมีข้อความที่ยังไม่อ่าน)
               IconButton(
                 tooltip: 'แชต',
                 icon: user == null
@@ -406,8 +463,7 @@ class _FeedPageState extends State<FeedPage> {
                         ),
                       ),
               ),
-
-              // ปุ่มรายงาน (เฉพาะผู้ดูแลระบบ)
+              if (user != null) NotificationBell(me: user),
               if (user != null && user.isAdmin)
                 IconButton(
                   tooltip: 'รายงานที่รอตรวจ',

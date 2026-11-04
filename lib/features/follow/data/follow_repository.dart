@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../../../core/constants/firestore_paths.dart';
 import '../../auth/data/app_user.dart';
+import '../../notifications/data/notification_repository.dart';
 import 'follow_models.dart';
 
 class FollowException implements Exception {
@@ -14,6 +15,7 @@ class FollowRepository {
     : _db = db ?? FirebaseFirestore.instance;
 
   final FirebaseFirestore _db;
+  final NotificationRepository _notify = NotificationRepository();
 
   CollectionReference<Map<String, dynamic>> get _col =>
       _db.collection(FirestorePaths.follows);
@@ -52,6 +54,13 @@ class FollowRepository {
     } on FirebaseException catch (e) {
       throw FollowException(_message(e.code));
     }
+
+    await _notify.send(
+      toUid: target.uid,
+      type: target.isPrivate ? 'follow_request' : 'follow',
+      actor: me,
+      id: 'follow_${me.uid}',
+    );
   }
 
   /// เลิกติดตาม หรือยกเลิกคำขอที่ส่งไป
@@ -108,6 +117,25 @@ class FollowRepository {
       await _col.doc(idFor(followerId, myUid)).update({'status': 'accepted'});
     } on FirebaseException catch (e) {
       throw FollowException(_message(e.code));
+    }
+
+    // แจ้งผู้ขอติดตามว่าได้รับอนุมัติแล้ว
+    try {
+      final meSnap = await _db
+          .collection(FirestorePaths.users)
+          .doc(myUid)
+          .get();
+      final data = meSnap.data();
+      if (data != null) {
+        await _notify.send(
+          toUid: followerId,
+          type: 'follow_accepted',
+          actor: AppUser.fromMap(myUid, data),
+          id: 'accepted_$myUid',
+        );
+      }
+    } on FirebaseException {
+      // ข้ามได้
     }
   }
 

@@ -7,6 +7,7 @@ class FirestorePaths {
   static const messages = 'messages';
   static const groups = 'groups';
   static const reports = 'reports';
+  static const stories = 'stories';
 
   static String user(String uid) => '$users/$uid';
 }

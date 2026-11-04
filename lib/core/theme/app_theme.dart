@@ -18,19 +18,34 @@ class AppTheme {
     textSecondary: AppColors.darkTextSecondary,
   );
 
+  /// โหมดมืดพร้อมสีหลักที่ผู้ใช้เลือก
+  static ThemeData darkWith(Color primary) => _build(
+    brightness: Brightness.dark,
+    background: AppColors.darkBackground,
+    surface: AppColors.darkSurface,
+    text: AppColors.darkText,
+    textSecondary: AppColors.darkTextSecondary,
+    primary: primary,
+  );
+
   static ThemeData _build({
     required Brightness brightness,
     required Color background,
     required Color surface,
     required Color text,
     required Color textSecondary,
+    Color primary = AppColors.primary,
   }) {
+    final onPrimary =
+        ThemeData.estimateBrightnessForColor(primary) == Brightness.dark
+        ? Colors.white
+        : const Color(0xFF0B1220);
     final scheme = ColorScheme(
       brightness: brightness,
-      primary: AppColors.primary,
-      onPrimary: Colors.white,
+      primary: primary,
+      onPrimary: onPrimary,
       secondary: AppColors.accent,
-      onSecondary: Colors.white,
+      onSecondary: const Color(0xFF0B1220),
       error: AppColors.error,
       onError: Colors.white,
       surface: surface,
@@ -55,7 +70,35 @@ class AppTheme {
       cardTheme: CardThemeData(
         color: surface,
         elevation: 0,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: BorderSide(color: textSecondary.withValues(alpha: 0.18)),
+        ),
+      ),
+      dividerTheme: DividerThemeData(
+        color: textSecondary.withValues(alpha: 0.18),
+        space: 1,
+      ),
+      chipTheme: ChipThemeData(
+        backgroundColor: surface,
+        selectedColor: primary.withValues(alpha: 0.2),
+        side: BorderSide(color: textSecondary.withValues(alpha: 0.3)),
+        labelStyle: TextStyle(color: text),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      ),
+      tabBarTheme: TabBarThemeData(
+        labelColor: primary,
+        unselectedLabelColor: textSecondary,
+        indicatorColor: primary,
+        dividerColor: textSecondary.withValues(alpha: 0.18),
+      ),
+      navigationBarTheme: NavigationBarThemeData(
+        backgroundColor: surface,
+        indicatorColor: primary.withValues(alpha: 0.2),
+      ),
+      floatingActionButtonTheme: FloatingActionButtonThemeData(
+        backgroundColor: primary,
+        foregroundColor: onPrimary,
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
@@ -71,7 +114,7 @@ class AppTheme {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: radius,
-          borderSide: const BorderSide(color: AppColors.primary, width: 2),
+          borderSide: BorderSide(color: primary, width: 2),
         ),
         errorBorder: OutlineInputBorder(
           borderRadius: radius,
@@ -84,22 +127,22 @@ class AppTheme {
       ),
       filledButtonTheme: FilledButtonThemeData(
         style: FilledButton.styleFrom(
-          backgroundColor: AppColors.primary,
-          foregroundColor: Colors.white,
+          backgroundColor: primary,
+          foregroundColor: onPrimary,
           minimumSize: const Size.fromHeight(50),
           shape: RoundedRectangleBorder(borderRadius: radius),
         ),
       ),
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
-          foregroundColor: AppColors.primary,
+          foregroundColor: primary,
           minimumSize: const Size.fromHeight(50),
-          side: const BorderSide(color: AppColors.primary),
+          side: BorderSide(color: primary),
           shape: RoundedRectangleBorder(borderRadius: radius),
         ),
       ),
       textButtonTheme: TextButtonThemeData(
-        style: TextButton.styleFrom(foregroundColor: AppColors.accent),
+        style: TextButton.styleFrom(foregroundColor: primary),
       ),
     );
   }

@@ -24,8 +24,8 @@ class PostCard extends StatelessWidget {
   final AppUser? viewer;
   final VoidCallback? onEdit;
   final VoidCallback? onDelete;
-  final VoidCallback? onAuthorTap; // แตะรูป/ชื่อผู้เขียนเพื่อเปิดโปรไฟล์
-  final void Function(String tag)? onTagTap; // แตะแฮชแท็กในโพสต์
+  final VoidCallback? onAuthorTap;
+  final void Function(String tag)? onTagTap;
 
   String _timeAgo(DateTime t) {
     final diff = DateTime.now().difference(t);
@@ -36,14 +36,14 @@ class PostCard extends StatelessWidget {
     return '${t.day}/${t.month}/${t.year}';
   }
 
-  Widget _media() {
-    final url = post.mediaUrl!;
-    if (post.mediaType == 'video') return PostVideo(url: url);
+  Widget _mediaOf(String url, String? type) {
+    if (type == 'video') return PostVideo(url: url);
+
     return ConstrainedBox(
       constraints: const BoxConstraints(maxHeight: 420),
       child: Image.network(
         url,
-        semanticLabel: 'รูปภาพในโพสต์ของ ${post.authorName}',
+        semanticLabel: 'รูปภาพในโพสต์',
         width: double.infinity,
         fit: BoxFit.cover,
         loadingBuilder: (context, child, progress) => progress == null
@@ -60,6 +60,157 @@ class PostCard extends StatelessWidget {
     );
   }
 
+  // กรอบสำเนาโพสต์ต้นฉบับที่ถูกแชร์
+  Widget _sharedBlock(ThemeData theme) {
+    final s = post.shared!;
+
+    return Container(
+      margin: const EdgeInsets.only(top: 12),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.35),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              CircleAvatar(
+                radius: 14,
+                backgroundImage: s.authorPhotoUrl != null
+                    ? NetworkImage(s.authorPhotoUrl!)
+                    : null,
+                child: s.authorPhotoUrl == null
+                    ? Text(
+                        s.authorName.isNotEmpty
+                            ? s.authorName[0].toUpperCase()
+                            : '?',
+                        style: const TextStyle(fontSize: 12),
+                      )
+                    : null,
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  s.authorName,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          if (s.text.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            HashtagText(
+              text: s.text,
+              style: theme.textTheme.bodyMedium,
+              onTagTap: onTagTap,
+            ),
+          ],
+          if (s.mediaUrl != null) ...[
+            const SizedBox(height: 8),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(10),
+              child: _mediaOf(s.mediaUrl!, s.mediaType),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _authorInfo(ThemeData theme, String subtitle, {bool compact = false}) {
+    final avatar = CircleAvatar(
+      backgroundImage: post.authorPhotoUrl != null
+          ? NetworkImage(post.authorPhotoUrl!)
+          : null,
+      child: post.authorPhotoUrl == null
+          ? Text(
+              post.authorName.isNotEmpty
+                  ? post.authorName[0].toUpperCase()
+                  : '?',
+            )
+          : null,
+    );
+
+    final details = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          post.authorName,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: theme.textTheme.titleSmall?.copyWith(
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        Text(
+          post.shared != null ? '$subtitle · แชร์โพสต์' : subtitle,
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+          style: theme.textTheme.bodySmall?.copyWith(
+            color: theme.colorScheme.onSurfaceVariant,
+          ),
+        ),
+      ],
+    );
+
+    return InkWell(
+      borderRadius: BorderRadius.circular(8),
+      onTap: onAuthorTap,
+      child: compact
+          ? Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [avatar, const SizedBox(height: 6), details],
+            )
+          : Row(
+              children: [
+                avatar,
+                const SizedBox(width: 12),
+                Expanded(child: details),
+              ],
+            ),
+    );
+  }
+
+  Widget _postMenu(BuildContext context) {
+    if (isOwner) {
+      return PopupMenuButton<String>(
+        tooltip: 'ตัวเลือกโพสต์',
+        onSelected: (value) {
+          if (value == 'edit') onEdit?.call();
+          if (value == 'delete') onDelete?.call();
+        },
+        itemBuilder: (_) => const [
+          PopupMenuItem(value: 'edit', child: Text('แก้ไข')),
+          PopupMenuItem(value: 'delete', child: Text('ลบ')),
+        ],
+      );
+    }
+
+    if (viewer != null) {
+      return PopupMenuButton<String>(
+        tooltip: 'ตัวเลือก',
+        onSelected: (value) {
+          if (value == 'report') {
+            showReportDialog(context, post: post, reporter: viewer!);
+          }
+        },
+        itemBuilder: (_) => const [
+          PopupMenuItem(value: 'report', child: Text('รายงานโพสต์')),
+        ],
+      );
+    }
+
+    return const SizedBox.shrink();
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -73,83 +224,30 @@ class PostCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              children: [
-                Expanded(
-                  child: InkWell(
-                    borderRadius: BorderRadius.circular(8),
-                    onTap: onAuthorTap,
-                    child: Row(
-                      children: [
-                        CircleAvatar(
-                          backgroundImage: post.authorPhotoUrl != null
-                              ? NetworkImage(post.authorPhotoUrl!)
-                              : null,
-                          child: post.authorPhotoUrl == null
-                              ? Text(
-                                  post.authorName.isNotEmpty
-                                      ? post.authorName[0].toUpperCase()
-                                      : '?',
-                                )
-                              : null,
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                post.authorName,
-                                style: theme.textTheme.titleSmall?.copyWith(
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              Text(
-                                subtitle,
-                                style: theme.textTheme.bodySmall?.copyWith(
-                                  color: theme.colorScheme.onSurfaceVariant,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                // โพสต์ของตัวเอง: แก้ไข / ลบ
-                if (isOwner)
-                  PopupMenuButton<String>(
-                    onSelected: (v) {
-                      if (v == 'edit') onEdit?.call();
-                      if (v == 'delete') onDelete?.call();
-                    },
-                    itemBuilder: (_) => const [
-                      PopupMenuItem(value: 'edit', child: Text('แก้ไข')),
-                      PopupMenuItem(value: 'delete', child: Text('ลบ')),
+            // ใช้ LayoutBuilder เพื่อจัดหัวโพสต์ใหม่เมื่อพื้นที่หน้าจอแคบ
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final compact = constraints.maxWidth < 260;
+                final author = _authorInfo(theme, subtitle, compact: compact);
+                final menu = _postMenu(context);
+
+                if (compact) {
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      author,
+                      Align(alignment: Alignment.centerRight, child: menu),
                     ],
-                  ),
-                // โพสต์ของคนอื่น: รายงาน
-                if (!isOwner && viewer != null)
-                  PopupMenuButton<String>(
-                    tooltip: 'ตัวเลือก',
-                    onSelected: (v) {
-                      if (v == 'report') {
-                        showReportDialog(
-                          context,
-                          post: post,
-                          reporter: viewer!,
-                        );
-                      }
-                    },
-                    itemBuilder: (_) => const [
-                      PopupMenuItem(
-                        value: 'report',
-                        child: Text('รายงานโพสต์'),
-                      ),
-                    ],
-                  ),
-              ],
+                  );
+                }
+
+                return Row(
+                  children: [
+                    Expanded(child: author),
+                    menu,
+                  ],
+                );
+              },
             ),
             if (post.text.isNotEmpty) ...[
               const SizedBox(height: 12),
@@ -159,11 +257,12 @@ class PostCard extends StatelessWidget {
                 onTagTap: onTagTap,
               ),
             ],
+            if (post.shared != null) _sharedBlock(theme),
             if (post.mediaUrl != null) ...[
               const SizedBox(height: 12),
               ClipRRect(
                 borderRadius: BorderRadius.circular(12),
-                child: _media(),
+                child: _mediaOf(post.mediaUrl!, post.mediaType),
               ),
             ],
             if (viewer != null) ...[

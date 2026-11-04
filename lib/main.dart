@@ -14,7 +14,9 @@ import 'features/follow/data/follow_repository.dart';
 import 'features/profile/data/user_repository.dart';
 import 'features/follow/data/feed_visibility.dart';
 import 'features/reports/data/report_repository.dart';
+import 'features/notifications/data/notification_repository.dart';
 import 'core/theme/theme_controller.dart';
+import 'features/stories/data/story_repository.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -37,6 +39,10 @@ Future<void> main() async {
         Provider<UserRepository>(create: (_) => UserRepository()),
         Provider<FeedVisibility>(create: (_) => FeedVisibility()),
         Provider<ReportRepository>(create: (_) => ReportRepository()),
+        Provider<StoryRepository>(create: (_) => StoryRepository()),
+        Provider<NotificationRepository>(
+          create: (_) => NotificationRepository(),
+        ),
       ],
       child: const App(),
     ),

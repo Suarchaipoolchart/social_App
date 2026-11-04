@@ -185,7 +185,12 @@ class _GroupDetailPageState extends State<GroupDetailPage> {
                         children: [
                           CircleAvatar(
                             radius: 28,
-                            child: Icon(g.isPage ? Icons.flag : Icons.groups),
+                            backgroundImage: g.photoUrl != null
+                                ? NetworkImage(g.photoUrl!)
+                                : null,
+                            child: g.photoUrl == null
+                                ? Icon(g.isPage ? Icons.flag : Icons.groups)
+                                : null,
                           ),
                           const SizedBox(width: 14),
                           Expanded(
@@ -232,7 +237,9 @@ class _GroupDetailPageState extends State<GroupDetailPage> {
                   leading: const Icon(Icons.dynamic_feed),
                   title: Text('ฟีดของ${g.typeLabel}'),
                   subtitle: Text(
-                    g.isPage ? 'โพสต์จากผู้ดูแลเพจ' : 'โพสต์จากสมาชิกในกลุ่ม',
+                    g.isPage
+                        ? 'โพสต์จากผู้ติดตามและผู้ดูแลเพจ'
+                        : 'โพสต์จากสมาชิกในกลุ่ม',
                   ),
                   trailing: const Icon(Icons.chevron_right),
                   onTap: () => Navigator.push(
