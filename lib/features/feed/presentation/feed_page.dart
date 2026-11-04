@@ -440,7 +440,7 @@ class _FeedPageState extends State<FeedPage> {
           appBar: AppBar(
             centerTitle: false,
             title: const Text(
-              'Social App',
+              'Oxny',
               style: TextStyle(fontWeight: FontWeight.bold),
             ),
             actions: [

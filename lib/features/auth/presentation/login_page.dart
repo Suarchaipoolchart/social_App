@@ -78,7 +78,7 @@ class _LoginPageState extends State<LoginPage> {
                   ),
                   const SizedBox(height: 12),
                   Text(
-                    'SocialThai',
+                    'Oxny',
                     style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                       fontWeight: FontWeight.bold,
                     ),
