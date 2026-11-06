@@ -8,7 +8,7 @@ class ChatException implements Exception {
   final String message;
   ChatException(this.message);
 }
-
+/// Repository สำหรับจัดการห้องแชตและข้อความ
 class ChatRepository {
   ChatRepository({FirebaseFirestore? db})
     : _db = db ?? FirebaseFirestore.instance;

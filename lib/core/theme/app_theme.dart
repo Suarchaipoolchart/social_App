@@ -1,20 +1,22 @@
 import 'package:flutter/material.dart';
 import 'app_colors.dart';
 
+/// เก็บ ThemeData ของแอปสำหรับโหมดสว่างและมืด
 class AppTheme {
   static final ThemeData light = _build(
     brightness: Brightness.light,
-    background: AppColors.lightBackground,
+    background: const Color.fromARGB(255, 242, 246, 240),
     surface: AppColors.lightSurface,
     text: AppColors.lightText,
     textSecondary: AppColors.lightTextSecondary,
   );
 
+  /// โหมดสว่างพร้อมสีหลักที่ผู้ใช้เลือก
   static final ThemeData dark = _build(
     brightness: Brightness.dark,
-    background: AppColors.darkBackground,
+    background: const Color.fromARGB(255, 251, 252, 251),
     surface: AppColors.darkSurface,
-    text: AppColors.darkText,
+    text: const Color.fromARGB(255, 245, 245, 245),
     textSecondary: AppColors.darkTextSecondary,
   );
 
@@ -28,6 +30,7 @@ class AppTheme {
     primary: primary,
   );
 
+  /// โหมดสว่างพร้อมสีหลักที่ผู้ใช้เลือก
   static ThemeData _build({
     required Brightness brightness,
     required Color background,
@@ -36,10 +39,12 @@ class AppTheme {
     required Color textSecondary,
     Color primary = AppColors.primary,
   }) {
+    // สีข้อความบนสีหลัก (primary) ขึ้นอยู่กับความสว่างของสีหลัก
     final onPrimary =
         ThemeData.estimateBrightnessForColor(primary) == Brightness.dark
-        ? Colors.white
+        ? const Color.fromARGB(255, 30, 178, 4)
         : const Color(0xFF0B1220);
+    // สร้าง ColorScheme สำหรับ ThemeData
     final scheme = ColorScheme(
       brightness: brightness,
       primary: primary,

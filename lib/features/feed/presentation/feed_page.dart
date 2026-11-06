@@ -18,25 +18,26 @@ import '../../notifications/presentation/badge_icon.dart';
 import '../../notifications/presentation/notification_bell.dart';
 import '../../stories/presentation/stories_bar.dart';
 
+/// หน้า Feed ของแอป
 class FeedPage extends StatefulWidget {
   const FeedPage({super.key});
 
   @override
   State<FeedPage> createState() => _FeedPageState();
 }
-
+/// State ของหน้า Feed
 class _FeedPageState extends State<FeedPage> {
   static const _pageSize = 10;
-
+// ScrollController สำหรับ ListView ของโพสต์
   final _scroll = ScrollController();
   final List<Post> _posts = [];
-
+// DocumentSnapshot ของโพสต์ล่าสุดที่โหลดมาแล้ว (สำหรับ pagination)
   DocumentSnapshot<Map<String, dynamic>>? _last;
-
+// สถานะการโหลดโพสต์
   bool _loading = false;
   bool _hasMore = true;
   bool _loadedOnce = false;
-
+// ข้อความแสดงข้อผิดพลาด (ถ้ามี)
   String? _error;
 
   @override
